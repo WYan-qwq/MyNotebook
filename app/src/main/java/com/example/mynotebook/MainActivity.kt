@@ -4,40 +4,61 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.mynotebook.plan.PlanActivity
-import com.example.mynotebook.ui.theme.MyNotebookTheme
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.rememberNavController
+import com.example.mynotebook.auth.LoginViewModel
+import com.example.mynotebook.auth.RegisterViewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import com.example.mynotebook.auth.LoginScreen
+import com.example.mynotebook.auth.RegisterScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MyNotebookTheme {
-                MainScreen()
+            MaterialTheme {
+                val nav = rememberNavController()
+
+                NavHost(navController = nav, startDestination = "login") {
+                    composable("login") {
+                        val vm: LoginViewModel = viewModel()
+                        LoginScreen(
+                            vm = vm,
+                            onNavigateToRegister = { nav.navigate("register") },
+                            onLoggedIn = { email -> nav.navigate("home/$email") { popUpTo("login") { inclusive = true } } }
+                        )
+                    }
+                    composable("register") {
+                        val vm: RegisterViewModel = viewModel()
+                        RegisterScreen(
+                            vm = vm,
+                            onRegistered = { email -> nav.navigate("home/$email") { popUpTo("login") { inclusive = true } } },
+                            onBackToLogin = { nav.popBackStack() }
+                        )
+                    }
+                    composable("home/{email}") { backStackEntry ->
+                        val email = backStackEntry.arguments?.getString("email") ?: ""
+                        HomeScreen(email = email)
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun MainScreen() {
-    // 拿到当前 Context
-    val ctx = LocalContext.current
-    Button(onClick = {
-        // 显式 Intent 进入 PlanActivity
-        ctx.startActivity(
-            Intent(ctx, PlanActivity::class.java)
-        )
-    }) {
-        Text("查看我的计划")
+fun HomeScreen(email: String) {
+    Scaffold { padding ->
+        Box(Modifier.padding(padding)) {
+            Text(text = "Hello, $email")
+        }
     }
 }

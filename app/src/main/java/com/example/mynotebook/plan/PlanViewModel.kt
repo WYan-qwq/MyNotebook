@@ -4,7 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.mynotebook.network.RetrofitClient
+import com.example.mynotebook.api.RetrofitClient
 import kotlinx.coroutines.launch
 
 class PlanViewModel : ViewModel() {
