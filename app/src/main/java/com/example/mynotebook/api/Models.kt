@@ -18,3 +18,14 @@ data class UserResponse(
     val email: String,
     val picture: String?
 )
+
+data class PlanItem(
+    val id: Int,
+    val date: String,        // "YYYY-MM-DD"
+    val hour: Int?,
+    val minute: Int?,
+    val title: String?,
+    val details: String?,
+    val alarm: Int?,
+    val finished: Int?
+)

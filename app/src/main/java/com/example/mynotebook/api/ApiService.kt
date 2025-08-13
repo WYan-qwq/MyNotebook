@@ -1,11 +1,10 @@
 package com.example.mynotebook.api
 
-import com.example.mynotebook.plan.Plan
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
-import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface ApiService {
     @POST("/api/auth/login")
@@ -14,7 +13,9 @@ interface ApiService {
     @POST("/api/auth/register")
     suspend fun register(@Body body: RegisterRequest): Response<UserResponse>
 
-
-    @GET("api/plans/user/{userId}")
-    suspend fun getPlansByUser(@Path("userId") userId: Int): Response<List<Plan>>
+    @GET("/api/plans/day")
+    suspend fun getPlansForDay(
+        @Query("userId") userId: Int,
+        @Query("date") date: String    // "YYYY-MM-DD"
+    ): Response<List<PlanItem>>
 }
