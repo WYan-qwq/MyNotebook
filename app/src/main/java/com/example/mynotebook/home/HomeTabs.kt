@@ -7,7 +7,7 @@ import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.ui.graphics.vector.ImageVector
 
-// 不要使用 data object，普通 object 就好，兼容性更好
+
 sealed class HomeTab(
     val route: String,
     val title: String,

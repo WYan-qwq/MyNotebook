@@ -18,4 +18,7 @@ interface ApiService {
         @Query("userId") userId: Int,
         @Query("date") date: String    // "YYYY-MM-DD"
     ): Response<List<PlanItem>>
+
+    @POST("/api/plans")
+    suspend fun createPlan(@Body body: PlanCreateRequest): Response<PlanItem>
 }

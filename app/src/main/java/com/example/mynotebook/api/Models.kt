@@ -29,3 +29,15 @@ data class PlanItem(
     val alarm: Int?,
     val finished: Int?
 )
+
+data class PlanCreateRequest(
+    val userId: Int,
+    val createTime: String,   // ISO-8601 instant, e.g. 2025-08-14T02:10:00Z
+    val date: String,         // "YYYY-MM-DD"（对应后端 LocalDate）
+    val hour: Int,
+    val minute: Int,
+    val title: String?,
+    val details: String?,
+    val alarm: Int = 0,       // 0/1
+    val finished: Int = 0
+)

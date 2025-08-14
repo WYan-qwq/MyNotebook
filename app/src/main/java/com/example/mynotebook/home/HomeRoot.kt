@@ -18,6 +18,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.mynotebook.plan.AddPlanScreen
 import com.example.mynotebook.plan.TodayPlansRoute
 
 @Composable
@@ -46,7 +47,6 @@ fun HomeRoot(userId: Int) {
             }
         },
         floatingActionButton = {
-            // 中间加号：不要放到底栏 items 里，这里单独做
             Surface(
                 tonalElevation = 4.dp,
                 shadowElevation = 8.dp,
@@ -71,7 +71,7 @@ fun HomeRoot(userId: Int) {
         ) {
             composable(HomeTab.Today.route) { TodayPlansRoute(userId = userId) }
             composable(HomeTab.Week.route)  { WeekStub() }
-            composable("add")               { AddPlanStub(onDone = { innerNav.popBackStack() }) }
+            composable("add")         { AddPlanScreen(userId = userId, onDone = { innerNav.popBackStack() }) }
             composable(HomeTab.Share.route) { ShareStub() }
             composable(HomeTab.Me.route)    { ProfileStub() }
         }
