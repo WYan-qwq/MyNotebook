@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.mynotebook.auth.LoginScreen
 import com.example.mynotebook.auth.RegisterScreen
+import com.example.mynotebook.home.HomeRoot
 import com.example.mynotebook.plan.TodayPlansRoute
 
 class MainActivity : ComponentActivity() {
@@ -31,7 +32,8 @@ class MainActivity : ComponentActivity() {
                             vm = vm,
                             onNavigateToRegister = { nav.navigate("register") },
                             onLoggedIn = { user ->
-                                nav.navigate("today/${user.id}") {
+                                // ⚠️ 这里一定要传 id（Int）
+                                nav.navigate("home/${user.id}") {
                                     popUpTo("login") { inclusive = true }
                                 }
                             }
@@ -43,7 +45,7 @@ class MainActivity : ComponentActivity() {
                         RegisterScreen(
                             vm = vm,
                             onRegistered = { user ->
-                                nav.navigate("today/${user.id}") {
+                                nav.navigate("home/${user.id}") {
                                     popUpTo("login") { inclusive = true }
                                 }
                             },
@@ -52,11 +54,11 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable(
-                        route = "today/{userId}",
+                        route = "home/{userId}",
                         arguments = listOf(navArgument("userId") { type = NavType.IntType })
                     ) { backStack ->
                         val userId = backStack.arguments?.getInt("userId") ?: 0
-                        TodayPlansRoute(userId = userId)
+                        HomeRoot(userId = userId)
                     }
                 }
             }
