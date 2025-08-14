@@ -26,8 +26,9 @@ fun HomeRoot(userId: Int) {
     val innerNav = rememberNavController()
     val backStackEntry by innerNav.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route.orEmpty()
-
+    val snackbarHostState = remember { SnackbarHostState() }
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             NavigationBar {
                 HomeTab.bottomItems.forEach { tab: HomeTab ->
@@ -69,9 +70,21 @@ fun HomeRoot(userId: Int) {
             startDestination = HomeTab.Today.route,
             modifier = Modifier.padding(padding)
         ) {
-            composable(HomeTab.Today.route) { TodayPlansRoute(userId = userId) }
+            composable(HomeTab.Today.route) {
+                TodayPlansRoute(
+                    userId = userId,
+                    navController = innerNav,
+                    snackbarHostState = snackbarHostState
+                )
+            }
             composable(HomeTab.Week.route)  { WeekStub() }
-            composable("add")         { AddPlanScreen(userId = userId, onDone = { innerNav.popBackStack() }) }
+            composable("add") {
+                AddPlanScreen(
+                    userId = userId,
+                    navController = innerNav,
+                    onDone = { innerNav.popBackStack() }
+                )
+            }
             composable(HomeTab.Share.route) { ShareStub() }
             composable(HomeTab.Me.route)    { ProfileStub() }
         }

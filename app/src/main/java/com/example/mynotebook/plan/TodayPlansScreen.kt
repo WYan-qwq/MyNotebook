@@ -11,18 +11,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.mynotebook.api.PlanItem
+import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodayPlansRoute(
     userId: Int,
+    navController: NavHostController,
+    snackbarHostState: SnackbarHostState,
     vm: TodayPlansViewModel = viewModel(factory = TodayPlansViewModel.provideFactory(userId))
 ) {
     val ui by vm.ui.collectAsState()
     var selected by remember { mutableStateOf<PlanItem?>(null) }
-
+    val scope = rememberCoroutineScope()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(backStackEntry) {
+        val handle = backStackEntry?.savedStateHandle
+        if (handle?.get<Boolean>("plan_added") == true) {
+            vm.refresh()
+            scope.launch { snackbarHostState.showSnackbar("Add successfully!") }
+            handle.remove<Boolean>("plan_added") // 防止重复触发
+        }
+    }
     Scaffold(
         topBar = {
             TopAppBar(title = {
