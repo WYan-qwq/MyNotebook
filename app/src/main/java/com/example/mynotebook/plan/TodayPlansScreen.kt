@@ -55,7 +55,7 @@ fun TodayPlansRoute(
                     Spacer(Modifier.height(12.dp))
                     OutlinedButton(onClick = { vm.refresh() }) { Text("Retry") }
                 }
-                ui.items.isEmpty() -> Text("No plans for today.", Modifier.align(Alignment.Center))
+                ui.items.isEmpty() -> Text("No plans for today,click + to add plans.", Modifier.align(Alignment.Center))
                 else -> LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
                     items(ui.items, key = { it.id }) { item ->
                         PlanRow(item) { selected = item }

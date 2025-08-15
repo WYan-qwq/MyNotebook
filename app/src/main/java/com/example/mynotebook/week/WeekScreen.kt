@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,6 +34,7 @@ fun WeekRoute(
     val rangeFmt = remember { DateTimeFormatter.ofPattern("MMM d") } // Jun 30
     val monthTitleFmt = remember { DateTimeFormatter.ofPattern("MMMM") } // July
 
+    val inCurrentWeek = ui.today >= ui.weekStart && ui.today <= ui.weekEnd
     Scaffold(
         topBar = {
             TopAppBar(
@@ -46,8 +48,32 @@ fun WeekRoute(
                     }
                 }
             )
-        }
-    ) { padding ->
+        },
+        floatingActionButton = {
+            if (!inCurrentWeek) {
+                TextButton(
+                    onClick = { vm.setWeekByDate(ui.today) },
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier
+                        .navigationBarsPadding()        // 避免被手势条顶住
+                        .padding(end = 10.dp, bottom = 16.dp) // ✅ 更靠右下；需要更低就把 bottom 再调小些
+                ) {
+                    Icon(
+                        Icons.Outlined.Today,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)  // ✅ 小图标
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Back to today",
+                        style = MaterialTheme.typography.labelSmall // ✅ 小字号
+                    )
+                }
+            }
+        },
+        floatingActionButtonPosition = FabPosition.End
+    )
+    { padding ->
         Column(
             Modifier
                 .padding(padding)

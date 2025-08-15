@@ -1,18 +1,15 @@
 package com.example.mynotebook.home
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -28,40 +25,72 @@ fun HomeRoot(userId: Int) {
     val backStackEntry by innerNav.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route.orEmpty()
     val snackbarHostState = remember { SnackbarHostState() }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+
+        // ✅ 用 BottomAppBar 托住底部操作，但不在这里放 FAB
         bottomBar = {
-            NavigationBar {
-                HomeTab.bottomItems.forEach { tab: HomeTab ->
-                    NavigationBarItem(
-                        selected = currentRoute.startsWith(tab.route),
+            BottomAppBar(
+                actions = {
+                    BottomBarAction(
+                        tab = HomeTab.Today,
+                        selected = currentRoute.startsWith(HomeTab.Today.route),
                         onClick = {
-                            innerNav.navigate(tab.route) {
+                            innerNav.navigate(HomeTab.Today.route) {
                                 popUpTo(innerNav.graph.startDestinationId) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
-                        },
-                        icon = { Icon(tab.icon, contentDescription = tab.title) },
-                        label = { Text(tab.title) }
+                        }
+                    )
+                    BottomBarAction(
+                        tab = HomeTab.Week,
+                        selected = currentRoute.startsWith(HomeTab.Week.route),
+                        onClick = {
+                            innerNav.navigate(HomeTab.Week.route) {
+                                popUpTo(innerNav.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                    Spacer(Modifier.weight(1f))
+                    BottomBarAction(
+                        tab = HomeTab.Share,
+                        selected = currentRoute.startsWith(HomeTab.Share.route),
+                        onClick = {
+                            innerNav.navigate(HomeTab.Share.route) {
+                                popUpTo(innerNav.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                    BottomBarAction(
+                        tab = HomeTab.Me,
+                        selected = currentRoute.startsWith(HomeTab.Me.route),
+                        onClick = {
+                            innerNav.navigate(HomeTab.Me.route) {
+                                popUpTo(innerNav.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
                     )
                 }
-            }
+            )
         },
+
+        // ✅ 把 FAB 放到 Scaffold，并指定居中；再向下偏移一点形成“镶嵌”
         floatingActionButton = {
-            Surface(
-                tonalElevation = 4.dp,
-                shadowElevation = 8.dp,
-                border = BorderStroke(2.dp, MaterialTheme.colorScheme.onSurface),
-                shape = MaterialTheme.shapes.medium,
+            LargeFloatingActionButton(
+                onClick = { innerNav.navigate("add") },
                 modifier = Modifier
-                    .size(56.dp)
-                    .shadow(8.dp, MaterialTheme.shapes.medium)
-                    .clickable { innerNav.navigate("add") }
+                    .offset(y = 65.dp)           // 下沉到 BottomAppBar 里，数值可微调 18–32dp
+                    .navigationBarsPadding()     // 避免被系统手势条顶住
             ) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.Add, contentDescription = "添加计划")
-                }
+                Icon(Icons.Rounded.Add, contentDescription = "Add")
             }
         },
         floatingActionButtonPosition = FabPosition.Center
@@ -80,9 +109,10 @@ fun HomeRoot(userId: Int) {
             }
             composable(HomeTab.Week.route)  {
                 WeekRoute(
-                userId = userId,
-                onNavigateToCalendar = { /* innerNav.navigate("calendar") 或弹系统日期选择器 */ }
-            ) }
+                    userId = userId,
+                    onNavigateToCalendar = { /* innerNav.navigate("calendar") */ }
+                )
+            }
             composable("add") {
                 AddPlanScreen(
                     userId = userId,
@@ -96,14 +126,33 @@ fun HomeRoot(userId: Int) {
     }
 }
 
-@Composable private fun WeekStub() { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("按周查看（TODO）") } }
-@Composable private fun ShareStub() { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("分享计划（TODO）") } }
-@Composable private fun ProfileStub() { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("我的（TODO）") } }
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable private fun AddPlanStub(onDone: () -> Unit) {
-    Scaffold(topBar = { TopAppBar(title = { Text("添加计划") }) }) { p ->
-        Box(Modifier.padding(p), contentAlignment = Alignment.Center) {
-            Button(onClick = onDone) { Text("保存（占位）") }
+@Composable
+private fun BottomBarAction(
+    tab: HomeTab,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val color = if (selected) MaterialTheme.colorScheme.primary else LocalContentColor.current
+    TextButton(
+        onClick = onClick,
+        colors = ButtonDefaults.textButtonColors(contentColor = color),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(tab.icon, contentDescription = tab.title)
+            Text(
+                tab.title,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
+}
+
+@Composable private fun ShareStub() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("分享计划（TODO）") }
+}
+@Composable private fun ProfileStub() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("我的（TODO）") }
 }
