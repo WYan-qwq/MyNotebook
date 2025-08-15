@@ -90,6 +90,22 @@ class WeekViewModel(private val userId: Int) : ViewModel() {
         }
     }
 
+    fun deletePlan(id: Int) {
+        viewModelScope.launch {
+            try {
+                val resp = RetrofitClient.api.deletePlan(id)
+                if (resp.isSuccessful) {
+                    // 用当前周起始日作为锚点刷新
+                    loadFor(_ui.value.weekStart)
+                } else {
+                    // 可选：_ui.value = _ui.value.copy(error = "Delete failed (${resp.code()})")
+                }
+            } catch (e: Exception) {
+                // 可选：_ui.value = _ui.value.copy(error = e.message ?: "Network error")
+            }
+        }
+    }
+
     companion object {
         fun provideFactory(userId: Int): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {

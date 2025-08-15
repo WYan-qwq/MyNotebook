@@ -173,6 +173,22 @@ class AddPlanViewModel(private val userId: Int) : ViewModel() {
         }
     }
 
+
+    fun deletePlan(id: Int) {
+        viewModelScope.launch {
+            try {
+                val resp = RetrofitClient.api.deletePlan(id)
+                if (resp.isSuccessful) {
+                    // 删完刷新当前日期的 existing 列表
+                    loadForDate(_ui.value.date)
+                } else {
+                    // 可选：错误处理
+                }
+            } catch (_: Exception) {
+                // 可选：异常处理
+            }
+        }
+    }
     companion object {
         fun provideFactory(userId: Int): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {

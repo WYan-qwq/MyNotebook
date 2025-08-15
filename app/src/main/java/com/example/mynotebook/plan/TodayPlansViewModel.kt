@@ -103,4 +103,19 @@ class TodayPlansViewModel(private val userId: Int) : ViewModel() {
             }
         }
     }
+
+    fun deletePlan(planId: Int) {
+        viewModelScope.launch {
+            try {
+                val resp = RetrofitClient.api.deletePlan(planId)
+                if (resp.isSuccessful) {
+                    refresh()
+                } else {
+                    // 可选：处理错误
+                }
+            } catch (_: Exception) {
+                // 可选：处理异常
+            }
+        }
+    }
 }

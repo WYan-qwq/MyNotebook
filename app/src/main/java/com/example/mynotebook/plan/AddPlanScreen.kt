@@ -42,7 +42,7 @@ fun AddPlanScreen(
 ) {
     val ui by vm.ui.collectAsState()
     val ctx = LocalContext.current
-    var editedAny by remember { mutableStateOf(false) } // 本页面是否编辑过已有计划
+    var changedAny by remember { mutableStateOf(false) } // 新增/编辑/删除 只要发生过就记为 true
 
     Scaffold(
         topBar = {
@@ -51,13 +51,11 @@ fun AddPlanScreen(
                 actions = {
                     TextButton(onClick = {
                         // ✅ 返回前通知 Today 与 Week 刷新
-                        if (ui.createdAny || editedAny) {
-                            // Today
+                        if (ui.createdAny || changedAny) {
                             runCatching {
                                 navController.getBackStackEntry(HomeTab.Today.route)
                                     .savedStateHandle["plan_added"] = true
                             }
-                            // Week
                             runCatching {
                                 navController.getBackStackEntry(HomeTab.Week.route)
                                     .savedStateHandle["week_refresh"] = true
@@ -106,13 +104,13 @@ fun AddPlanScreen(
                 )
             }
 
-            // 主体：LazyColumn — 已有计划(可编辑) + 草稿编辑
+            // 主体：LazyColumn — 已有计划(可编辑+删除) + 草稿编辑
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Section: 已有计划（✅ 可展开编辑，无时间限制）
+                // Section: 已有计划（✅ 可展开编辑 + Delete，无时间限制）
                 if (ui.existing.isNotEmpty()) {
                     item { Text("Plans of the day", style = MaterialTheme.typography.titleMedium) }
                     items(ui.existing, key = { it.id }) { item ->
@@ -120,7 +118,11 @@ fun AddPlanScreen(
                             plan = item,
                             onSaveEdit = { id, h, m, title, details, alarm ->
                                 vm.updatePlan(id, h, m, title, details, alarm)
-                                editedAny = true
+                                changedAny = true
+                            },
+                            onDelete = { id ->
+                                vm.deletePlan(id)          // ✅ 删除后在 VM 内刷新
+                                changedAny = true
                             }
                         )
                     }
@@ -147,13 +149,14 @@ fun AddPlanScreen(
     }
 }
 
-/* ---------------- 已有计划：可展开编辑（无时间限制） ---------------- */
+/* ---------------- 已有计划：可展开编辑 + Delete（无时间限制） ---------------- */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ExistingPlanEditableRow(
     plan: PlanItem,
-    onSaveEdit: (id: Int, hour: Int, minute: Int, title: String, details: String?, alarm: Int) -> Unit
+    onSaveEdit: (id: Int, hour: Int, minute: Int, title: String, details: String?, alarm: Int) -> Unit,
+    onDelete: (Int) -> Unit
 ) {
     var expanded by remember(plan.id) { mutableStateOf(false) }
     var editing by remember(plan.id) { mutableStateOf(false) }
@@ -166,7 +169,7 @@ private fun ExistingPlanEditableRow(
         if (expanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
         else MaterialTheme.colorScheme.surface
 
-    // 编辑态临时值
+    // 编辑态临时值（时间无约束）
     var hour by remember(plan.id) { mutableStateOf((plan.hour ?: 0).coerceIn(0, 23)) }
     var minute by remember(plan.id) { mutableStateOf((plan.minute ?: 0).coerceIn(0, 59)) }
     var title by remember(plan.id) { mutableStateOf(plan.title.orEmpty()) }
@@ -197,6 +200,12 @@ private fun ExistingPlanEditableRow(
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(8.dp))
+                if ((plan.finished ?: 0) == 1) {
+                    Text("✓", color = MaterialTheme.colorScheme.primary)
+                } else {
+                    Text("×", color = MaterialTheme.colorScheme.error)
+                }
+                Spacer(Modifier.width(8.dp))
                 Icon(Icons.Outlined.ExpandMore, contentDescription = null, modifier = Modifier.rotate(rotate))
             }
 
@@ -215,6 +224,7 @@ private fun ExistingPlanEditableRow(
                         if ((plan.alarm ?: 0) == 1) {
                             Text("⏰ Alarm set", style = MaterialTheme.typography.labelMedium)
                         }
+                        // ✅ 右下角：Edit + Delete
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                             TextButton(
                                 onClick = {
@@ -228,6 +238,16 @@ private fun ExistingPlanEditableRow(
                                 },
                                 contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                             ) { Text("Edit", style = MaterialTheme.typography.labelLarge) }
+
+                            Spacer(Modifier.width(8.dp))
+
+                            TextButton(
+                                onClick = { onDelete(plan.id) },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                ),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                            ) { Text("Delete", style = MaterialTheme.typography.labelLarge) }
                         }
                     } else {
                         // 编辑 —— 无时间限制
@@ -332,7 +352,7 @@ private fun ExistingPlanEditableRow(
     }
 }
 
-/* ---------------- 新增草稿行（保持不变） ---------------- */
+/* ---------------- 新增草稿行（保持原样） ---------------- */
 
 @Composable
 private fun DraftEditorRow(

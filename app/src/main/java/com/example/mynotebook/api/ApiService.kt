@@ -2,6 +2,7 @@ package com.example.mynotebook.api
 
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -35,4 +36,7 @@ interface ApiService {
         @Path("id") id: Int,
         @Body body: PlanUpdateRequest
     ): Response<PlanItem>
+
+    @DELETE("/api/plans/{id}")
+    suspend fun deletePlan(@Path("id") id: Int): Response<Unit>
 }

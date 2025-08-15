@@ -47,16 +47,17 @@ fun TodayPlansRoute(
         }
     }
 
-    // 展开状态
     val expandedIds = remember { mutableStateListOf<Int>() }
-
-    // 排序（若后端已排序可删）
     val plans = remember(ui.items) {
         ui.items.sortedWith(compareBy({ it.hour ?: 0 }, { it.minute ?: 0 }, { it.id }))
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Today's Plans • ${ui.date.format(DateTimeFormatter.ISO_DATE)}") }) }
+        topBar = {
+            TopAppBar(title = {
+                Text("Today's Plans • ${ui.date.format(DateTimeFormatter.ISO_DATE)}")
+            })
+        }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
@@ -69,7 +70,10 @@ fun TodayPlansRoute(
                     Spacer(Modifier.height(12.dp))
                     OutlinedButton(onClick = { vm.refresh() }) { Text("Retry") }
                 }
-                plans.isEmpty() -> Text("No plans for today, click + to add plans.", Modifier.align(Alignment.Center))
+                plans.isEmpty() -> Text(
+                    "No plans for today, click + to add plans.",
+                    Modifier.align(Alignment.Center)
+                )
                 else -> LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -89,6 +93,10 @@ fun TodayPlansRoute(
                             onSaveEdit = { id, hour, minute, title, details, alarm ->
                                 vm.updatePlan(id, hour, minute, title, details, alarm)
                                 scope.launch { snackbarHostState.showSnackbar("Updated!") }
+                            },
+                            onDelete = { id ->
+                                vm.deletePlan(id)
+                                scope.launch { snackbarHostState.showSnackbar("Deleted") }
                             }
                         )
                     }
@@ -105,7 +113,8 @@ private fun PlanExpandableRow(
     expanded: Boolean,
     onToggle: () -> Unit,
     onFinish: (Int) -> Unit,
-    onSaveEdit: (id: Int, hour: Int, minute: Int, title: String, details: String?, alarm: Int) -> Unit
+    onSaveEdit: (id: Int, hour: Int, minute: Int, title: String, details: String?, alarm: Int) -> Unit,
+    onDelete: (Int) -> Unit
 ) {
     val rotate by animateFloatAsState(if (expanded) 180f else 0f, label = "arrowRotate")
     val borderColor = if (expanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
@@ -119,17 +128,14 @@ private fun PlanExpandableRow(
     val isExpired = now.hour > h0 || (now.hour == h0 && now.minute >= m0)
     val isFinished = (plan.finished ?: 0) == 1
 
-    // 是否进入编辑模式
     var editing by remember(plan.id) { mutableStateOf(false) }
 
-    // 编辑态的临时状态
     var title by remember(plan.id) { mutableStateOf(plan.title.orEmpty()) }
     var details by remember(plan.id) { mutableStateOf(plan.details.orEmpty()) }
     var alarm by remember(plan.id) { mutableStateOf((plan.alarm ?: 0) == 1) }
     var hour by remember(plan.id) { mutableStateOf(h0) }
     var minute by remember(plan.id) { mutableStateOf(m0) }
 
-    // 根据“不能选过去时间”的限制，计算可选列表
     val allowedHours = remember(now) { (now.hour..23).toList() }
     val allowedMinutes = remember(now, hour) {
         if (hour == now.hour) (now.minute..59).toList() else (0..59).toList()
@@ -146,8 +152,6 @@ private fun PlanExpandableRow(
             .clickable(onClick = onToggle)
     ) {
         Column(Modifier.padding(16.dp)) {
-
-            // 顶部：时间 + 标题 + 状态/按钮 + 小箭头
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "%02d:%02d".format(h0, m0),
@@ -168,7 +172,7 @@ private fun PlanExpandableRow(
                     !isExpired -> TextButton(
                         onClick = { onFinish(plan.id) },
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                    ) { Text("Done", style = MaterialTheme.typography.labelLarge) }
+                    ) { Text("Finish", style = MaterialTheme.typography.labelLarge) }
                     else -> Text("×", color = MaterialTheme.colorScheme.error)
                 }
 
@@ -176,7 +180,6 @@ private fun PlanExpandableRow(
                 Icon(Icons.Outlined.ExpandMore, contentDescription = null, modifier = Modifier.rotate(rotate))
             }
 
-            // 展开：详情 / 编辑
             AnimatedVisibility(visible = expanded) {
                 Column {
                     Spacer(Modifier.height(8.dp))
@@ -184,7 +187,6 @@ private fun PlanExpandableRow(
                     Spacer(Modifier.height(8.dp))
 
                     if (!editing) {
-                        // 只读详情
                         plan.details?.takeIf { it.isNotBlank() }?.let {
                             Text(it, style = MaterialTheme.typography.bodyMedium)
                             Spacer(Modifier.height(6.dp))
@@ -193,13 +195,12 @@ private fun PlanExpandableRow(
                             Text("⏰ Alarm set", style = MaterialTheme.typography.labelMedium)
                         }
 
-                        // 只有“未完成且未过期”才显示 Edit
+                        // ✅ 可编辑时（未完成且未过期）显示 Edit + Delete（无背景）
                         if (!isFinished && !isExpired) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                                 TextButton(
                                     onClick = {
                                         editing = true
-                                        // 进入编辑时带入当前值
                                         title = plan.title.orEmpty()
                                         details = plan.details.orEmpty()
                                         alarm = (plan.alarm ?: 0) == 1
@@ -208,14 +209,22 @@ private fun PlanExpandableRow(
                                     },
                                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                                 ) { Text("Edit", style = MaterialTheme.typography.labelLarge) }
+
+                                Spacer(Modifier.width(8.dp))
+
+                                TextButton(
+                                    onClick = { onDelete(plan.id) },
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                                ) { Text("Delete", style = MaterialTheme.typography.labelLarge) }
                             }
                         }
                     } else {
-                        // 编辑 UI（与 Add 一致）
+                        // 编辑 UI（限制不能选过去时间）
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            // 时间选择：两个下拉（受限不能选过去）
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                // Hour
                                 var hourMenu by remember { mutableStateOf(false) }
                                 ExposedDropdownMenuBox(
                                     expanded = hourMenu,
@@ -229,19 +238,13 @@ private fun PlanExpandableRow(
                                         label = { Text("Hour") },
                                         modifier = Modifier.menuAnchor()
                                     )
-                                    ExposedDropdownMenu(
-                                        expanded = hourMenu,
-                                        onDismissRequest = { hourMenu = false }
-                                    ) {
+                                    ExposedDropdownMenu(expanded = hourMenu, onDismissRequest = { hourMenu = false }) {
                                         allowedHours.forEach {
                                             DropdownMenuItem(
                                                 text = { Text("%02d".format(it)) },
                                                 onClick = {
                                                     hour = it
-                                                    // 调整分钟合法性
-                                                    if (minute !in allowedMinutes) {
-                                                        minute = allowedMinutes.first()
-                                                    }
+                                                    if (minute !in allowedMinutes) minute = allowedMinutes.first()
                                                     hourMenu = false
                                                 }
                                             )
@@ -249,7 +252,6 @@ private fun PlanExpandableRow(
                                     }
                                 }
                                 Spacer(Modifier.width(12.dp))
-                                // Minute
                                 var minuteMenu by remember { mutableStateOf(false) }
                                 ExposedDropdownMenuBox(
                                     expanded = minuteMenu,
@@ -263,10 +265,7 @@ private fun PlanExpandableRow(
                                         label = { Text("Minute") },
                                         modifier = Modifier.menuAnchor()
                                     )
-                                    ExposedDropdownMenu(
-                                        expanded = minuteMenu,
-                                        onDismissRequest = { minuteMenu = false }
-                                    ) {
+                                    ExposedDropdownMenu(expanded = minuteMenu, onDismissRequest = { minuteMenu = false }) {
                                         allowedMinutes.forEach {
                                             DropdownMenuItem(
                                                 text = { Text("%02d".format(it)) },
@@ -276,7 +275,7 @@ private fun PlanExpandableRow(
                                     }
                                 }
                                 Spacer(Modifier.width(12.dp))
-                                if (!timeValid) {
+                                if (!(hour in allowedHours && minute in allowedMinutes)) {
                                     Text("Past time", color = MaterialTheme.colorScheme.error)
                                 }
                             }
@@ -301,17 +300,11 @@ private fun PlanExpandableRow(
                                 Text("Alarm")
                             }
 
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                TextButton(
-                                    onClick = { editing = false },
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                                ) { Text("Cancel") }
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                TextButton(onClick = { editing = false }) { Text("Cancel") }
                                 Spacer(Modifier.width(8.dp))
                                 TextButton(
-                                    enabled = timeValid && title.isNotBlank(),
+                                    enabled = (hour in allowedHours && minute in allowedMinutes) && title.isNotBlank(),
                                     onClick = {
                                         onSaveEdit(
                                             plan.id,
@@ -322,8 +315,7 @@ private fun PlanExpandableRow(
                                             if (alarm) 1 else 0
                                         )
                                         editing = false
-                                    },
-                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                    }
                                 ) { Text("Save") }
                             }
                         }
