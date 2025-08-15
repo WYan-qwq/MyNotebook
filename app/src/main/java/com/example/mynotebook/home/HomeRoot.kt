@@ -110,6 +110,7 @@ fun HomeRoot(userId: Int) {
             composable(HomeTab.Week.route)  {
                 WeekRoute(
                     userId = userId,
+                    navController = innerNav,
                     onNavigateToCalendar = { /* innerNav.navigate("calendar") */ }
                 )
             }
@@ -151,8 +152,8 @@ private fun BottomBarAction(
 }
 
 @Composable private fun ShareStub() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("分享计划（TODO）") }
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("sharing（TODO）") }
 }
 @Composable private fun ProfileStub() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("我的（TODO）") }
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("me（TODO）") }
 }

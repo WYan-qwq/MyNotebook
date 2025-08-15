@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.mynotebook.api.PlanItem
+import com.example.mynotebook.api.PlanUpdateRequest
 import com.example.mynotebook.api.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,5 +53,54 @@ class TodayPlansViewModel(private val userId: Int) : ViewModel() {
                     return TodayPlansViewModel(userId) as T
                 }
             }
+    }
+
+    fun markFinished(planId: Int) {
+        viewModelScope.launch {
+            try {
+                val resp = RetrofitClient.api.updatePlan(
+                    planId,
+                    PlanUpdateRequest(finished = 1)
+                )
+                if (resp.isSuccessful) {
+                    refresh()
+                } else {
+                     _ui.value = _ui.value.copy(error = "Update failed (${resp.code()})")
+                }
+            } catch (e: Exception) {
+                 _ui.value = _ui.value.copy(error = e.message ?: "Network error")
+            }
+        }
+    }
+
+    fun updatePlan(
+        planId: Int,
+        hour: Int,
+        minute: Int,
+        title: String,
+        details: String?,
+        alarm: Int
+    ) {
+        viewModelScope.launch {
+            try {
+                val resp = RetrofitClient.api.updatePlan(
+                    planId,
+                    PlanUpdateRequest(
+                        hour = hour,
+                        minute = minute,
+                        title = title,
+                        details = details,
+                        alarm = alarm
+                    )
+                )
+                if (resp.isSuccessful) {
+                    refresh()
+                } else {
+                    // 可选：处理错误
+                }
+            } catch (e: Exception) {
+                // 可选：处理异常
+            }
+        }
     }
 }

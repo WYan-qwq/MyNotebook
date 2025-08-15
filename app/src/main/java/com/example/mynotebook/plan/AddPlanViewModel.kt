@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.mynotebook.api.PlanCreateRequest
 import com.example.mynotebook.api.PlanItem
+import com.example.mynotebook.api.PlanUpdateRequest
 import com.example.mynotebook.api.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -146,6 +147,29 @@ class AddPlanViewModel(private val userId: Int) : ViewModel() {
             } catch (e: Exception) {
                 updateDraft(id) { it.copy(submitting = false, error = e.message ?: "Network error.") }
             }
+        }
+    }
+
+    fun updatePlan(id: Int, hour: Int, minute: Int, title: String, details: String?, alarm: Int) {
+        viewModelScope.launch {
+            try {
+                val resp = RetrofitClient.api.updatePlan(
+                    id,
+                    PlanUpdateRequest(
+                        hour = hour,
+                        minute = minute,
+                        title = title,
+                        details = details,
+                        alarm = alarm
+                    )
+                )
+                if (resp.isSuccessful) {
+                    // 重新拉取当前日期的 existing 列表
+                    loadForDate(_ui.value.date)
+                } else {
+                    // 可选：错误提示
+                }
+            } catch (_: Exception) { /* 可选：错误提示 */ }
         }
     }
 

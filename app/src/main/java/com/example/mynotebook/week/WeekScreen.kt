@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import java.time.format.DateTimeFormatter
 import java.time.LocalDate
 
@@ -28,11 +30,20 @@ import java.time.LocalDate
 fun WeekRoute(
     userId: Int,
     onNavigateToCalendar: () -> Unit, // 左上角返回/进入日历
+    navController: NavHostController,
     vm: WeekViewModel = viewModel(factory = WeekViewModel.provideFactory(userId))
 ) {
     val ui by vm.ui.collectAsState()
     val rangeFmt = remember { DateTimeFormatter.ofPattern("MMM d") } // Jun 30
     val monthTitleFmt = remember { DateTimeFormatter.ofPattern("MMMM") } // July
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(backStackEntry) {
+        val handle = backStackEntry?.savedStateHandle
+        if (handle?.get<Boolean>("week_refresh") == true) {
+            vm.setWeekByDate(ui.today)                  // 或 vm.setWeekByDate(LocalDate.now())
+            handle.remove<Boolean>("week_refresh")
+        }
+    }
 
     val inCurrentWeek = ui.today >= ui.weekStart && ui.today <= ui.weekEnd
     Scaffold(

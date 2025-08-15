@@ -4,6 +4,8 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ApiService {
@@ -27,4 +29,10 @@ interface ApiService {
         @Query("userId") userId: Int,
         @Query("date") date: String   // YYYY-MM-DD
     ): Response<List<PlanItem>>
+
+    @PUT("/api/plans/{id}")
+    suspend fun updatePlan(
+        @Path("id") id: Int,
+        @Body body: PlanUpdateRequest
+    ): Response<PlanItem>
 }

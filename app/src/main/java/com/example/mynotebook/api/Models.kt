@@ -41,3 +41,15 @@ data class PlanCreateRequest(
     val alarm: Int = 0,       // 0/1
     val finished: Int = 0
 )
+
+data class PlanUpdateRequest(
+    val userId: Int? = null,
+    val createTime: String? = null,
+    val date: String? = null,
+    val hour: Int? = null,
+    val minute: Int? = null,
+    val title: String? = null,
+    val details: String? = null,
+    val alarm: Int? = null,
+    val finished: Int? = null
+)
