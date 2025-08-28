@@ -17,6 +17,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.mynotebook.plan.AddPlanScreen
 import com.example.mynotebook.plan.TodayPlansRoute
+import com.example.mynotebook.share.ShareRoute
 import com.example.mynotebook.week.MonthCalendarScreen
 import com.example.mynotebook.week.WeekRoute
 
@@ -125,7 +126,7 @@ fun HomeRoot(userId: Int) {
                     onDone = { innerNav.popBackStack() }
                 )
             }
-            composable(HomeTab.Share.route) { ShareStub() }
+            composable(HomeTab.Share.route) { ShareRoute() }
             composable(HomeTab.Me.route)    { ProfileStub() }
         }
     }

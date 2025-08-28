@@ -39,4 +39,7 @@ interface ApiService {
 
     @DELETE("/api/plans/{id}")
     suspend fun deletePlan(@Path("id") id: Int): Response<Unit>
+
+    @GET("/api/share")
+    suspend fun listShares(@Query("userId") userId: Int? = null): Response<List<ShareView>>
 }

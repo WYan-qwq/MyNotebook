@@ -53,3 +53,38 @@ data class PlanUpdateRequest(
     val alarm: Int? = null,
     val finished: Int? = null
 )
+
+data class ShareView(
+    val sharingId: Int,
+    val createTime: String,   // 后端返回 ISO-8601 字符串
+    val likes: Int,
+    val comments: Int,
+    val author: Author,       // 作者信息
+    val share: ShareContent,  // 分享的标题/详情（独立于计划）
+    val plan: PlanBrief       // 被分享的计划（简版）
+)
+
+// 作者信息（来自 user_info）
+data class Author(
+    val userId: Int,
+    val userName: String,
+    val picture: String?      // 头像 URL，可为空
+)
+
+// 分享卡片本身的文案
+data class ShareContent(
+    val title: String,
+    val details: String?
+)
+
+// 被分享的计划简要信息（字段与后端 ShareDtos.PlanBrief 对应）
+data class PlanBrief(
+    val id: Int,
+    val date: String,         // 为了简单按字符串接收（后端若是 LocalDate/Instant 都可以）
+    val hour: Int?,
+    val minute: Int?,
+    val title: String?,
+    val details: String?,
+    val alarm: Int?,
+    val finished: Int?
+)
