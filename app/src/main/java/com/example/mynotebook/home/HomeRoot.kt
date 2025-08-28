@@ -11,13 +11,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.mynotebook.plan.AddPlanScreen
 import com.example.mynotebook.plan.TodayPlansRoute
+import com.example.mynotebook.share.ShareDetailScreen
 import com.example.mynotebook.share.ShareRoute
+import com.example.mynotebook.share.ShareViewModel
 import com.example.mynotebook.week.MonthCalendarScreen
 import com.example.mynotebook.week.WeekRoute
 
@@ -27,6 +32,7 @@ fun HomeRoot(userId: Int) {
     val backStackEntry by innerNav.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route.orEmpty()
     val snackbarHostState = remember { SnackbarHostState() }
+    val shareViewModel: ShareViewModel = viewModel()
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -126,7 +132,23 @@ fun HomeRoot(userId: Int) {
                     onDone = { innerNav.popBackStack() }
                 )
             }
-            composable(HomeTab.Share.route) { ShareRoute() }
+            composable(HomeTab.Share.route) { ShareRoute(
+                vm = shareViewModel,
+                onShowMore = { share ->
+                    innerNav.navigate("shareDetail/${share.sharingId}")
+                }
+            ) }
+            composable(
+                route = "shareDetail/{id}",
+                arguments = listOf(navArgument("id") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments!!.getInt("id")
+                ShareDetailScreen(
+                    shareId = id,
+                    vm = shareViewModel,              // 复用同一个 VM
+                    onBack = { innerNav.popBackStack() }
+                )
+            }
             composable(HomeTab.Me.route)    { ProfileStub() }
         }
     }
