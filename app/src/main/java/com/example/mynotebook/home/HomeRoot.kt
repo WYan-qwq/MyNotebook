@@ -17,6 +17,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.mynotebook.plan.AddPlanScreen
 import com.example.mynotebook.plan.TodayPlansRoute
+import com.example.mynotebook.week.MonthCalendarScreen
 import com.example.mynotebook.week.WeekRoute
 
 @Composable
@@ -110,9 +111,12 @@ fun HomeRoot(userId: Int) {
             composable(HomeTab.Week.route)  {
                 WeekRoute(
                     userId = userId,
-                    navController = innerNav,
-                    onNavigateToCalendar = { /* innerNav.navigate("calendar") */ }
+                    navController = innerNav,                      // ✅ 传入
+                    onNavigateToCalendar = { innerNav.navigate("calendar") }
                 )
+            }
+            composable("calendar") {
+                MonthCalendarScreen(navController = innerNav)
             }
             composable("add") {
                 AddPlanScreen(

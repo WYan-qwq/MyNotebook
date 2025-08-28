@@ -27,9 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.mynotebook.api.PlanItem
 import com.example.mynotebook.home.HomeTab
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,6 +45,15 @@ fun AddPlanScreen(
     val ui by vm.ui.collectAsState()
     val ctx = LocalContext.current
     var changedAny by remember { mutableStateOf(false) } // 新增/编辑/删除 只要发生过就记为 true
+    val backStackEntry by navController.currentBackStackEntryAsState()
+
+    LaunchedEffect(backStackEntry) {
+        val handle = backStackEntry?.savedStateHandle
+        handle?.get<String>("prefill_date")?.let { dateStr ->
+            LocalDate.parse(dateStr).let { vm.setDate(it) }
+            handle.remove<String>("prefill_date")
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -116,6 +127,7 @@ fun AddPlanScreen(
                     items(ui.existing, key = { it.id }) { item ->
                         ExistingPlanEditableRow(
                             plan = item,
+                            date = ui.date,
                             onSaveEdit = { id, h, m, title, details, alarm ->
                                 vm.updatePlan(id, h, m, title, details, alarm)
                                 changedAny = true
@@ -155,6 +167,7 @@ fun AddPlanScreen(
 @Composable
 private fun ExistingPlanEditableRow(
     plan: PlanItem,
+    date: LocalDate,   // 这一天（Add 页当前选中的日期）
     onSaveEdit: (id: Int, hour: Int, minute: Int, title: String, details: String?, alarm: Int) -> Unit,
     onDelete: (Int) -> Unit
 ) {
@@ -200,11 +213,32 @@ private fun ExistingPlanEditableRow(
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(8.dp))
-                if ((plan.finished ?: 0) == 1) {
-                    Text("✓", color = MaterialTheme.colorScheme.primary)
-                } else {
-                    Text("×", color = MaterialTheme.colorScheme.error)
+
+                // ✅ 改这里：未完成—过去显示×，未来不显示；已完成显示✓
+                run {
+                    val finished = (plan.finished ?: 0) == 1
+                    if (finished) {
+                        Text("✓", color = MaterialTheme.colorScheme.primary)
+                    } else {
+                        val today = LocalDate.now()
+                        val isPast = when {
+                            date.isBefore(today) -> true
+                            date.isAfter(today) -> false
+                            else -> {
+                                val h = (plan.hour ?: 0).coerceIn(0, 23)
+                                val m = (plan.minute ?: 0).coerceIn(0, 59)
+                                val now = LocalTime.now()
+                                now.hour > h || (now.hour == h && now.minute >= m)
+                            }
+                        }
+                        if (isPast) {
+                            Text("×", color = MaterialTheme.colorScheme.error)
+                        } else {
+                            // 未来且未完成：不显示任何标记（保持空白即可）
+                        }
+                    }
                 }
+
                 Spacer(Modifier.width(8.dp))
                 Icon(Icons.Outlined.ExpandMore, contentDescription = null, modifier = Modifier.rotate(rotate))
             }
@@ -224,11 +258,10 @@ private fun ExistingPlanEditableRow(
                         if ((plan.alarm ?: 0) == 1) {
                             Text("⏰ Alarm set", style = MaterialTheme.typography.labelMedium)
                         }
-                        // ✅ 右下角：Edit + Delete
+                        // 右下角：Edit + Delete
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                             TextButton(
                                 onClick = {
-                                    // 进入编辑时带入当前值
                                     hour = (plan.hour ?: 0).coerceIn(0, 23)
                                     minute = (plan.minute ?: 0).coerceIn(0, 59)
                                     title = plan.title.orEmpty()
@@ -351,7 +384,6 @@ private fun ExistingPlanEditableRow(
         }
     }
 }
-
 /* ---------------- 新增草稿行（保持原样） ---------------- */
 
 @Composable
