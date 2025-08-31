@@ -17,9 +17,16 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-
+    buildFeatures {
+        buildConfig = true   // ← 打开 BuildConfig 生成
+    }
     buildTypes {
-        release {
+        getByName("debug") {
+            // Kotlin DSL 里字符串一样要用转义的双引号
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+        }
+        getByName("release") {
+            buildConfigField("String", "BASE_URL", "\"https://api.example.com/\"")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -76,5 +83,6 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("androidx.compose.material:material-icons-extended:<compose-version>")
 
 }

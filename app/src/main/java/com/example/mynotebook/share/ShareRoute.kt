@@ -8,13 +8,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -25,41 +22,40 @@ import coil.compose.AsyncImage
 import com.example.mynotebook.R
 import com.example.mynotebook.api.PlanBrief
 import com.example.mynotebook.api.ShareView
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShareRoute(
     vm: ShareViewModel,
-    onShowMore: (ShareView) -> Unit
+    userId: Int,
+    onOpenDetail: (Int) -> Unit
 ) {
     val ui by vm.ui.collectAsState()
 
     Scaffold(topBar = { TopAppBar(title = { Text("Share") }) }) { padding ->
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+        Box(Modifier.fillMaxSize().padding(padding)) {
             when {
                 ui.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                ui.error != null -> Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(ui.error!!, color = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedButton(onClick = { vm.refresh() }) { Text("Retry") }
-                }
+                ui.error != null -> Text(ui.error!!, Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.error)
                 else -> LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(ui.items, key = { it.sharingId }) { share ->
+                        val liked = ui.liked.contains(share.sharingId)
+                        val likeLoading = ui.likeLoading.contains(share.sharingId)
+
                         ShareCard(
                             share = share,
-                            onShowMore = { onShowMore(share) } // 点击整卡或按钮都跳详情
+                            liked = liked,
+                            likeLoading = likeLoading,
+                            onToggleLike = { vm.toggleLike(share, userId) },
+                            onOpen = { onOpenDetail(share.sharingId) }
                         )
                     }
                 }
@@ -71,7 +67,10 @@ fun ShareRoute(
 @Composable
 private fun ShareCard(
     share: ShareView,
-    onShowMore: () -> Unit
+    liked: Boolean,
+    likeLoading: Boolean,
+    onToggleLike: () -> Unit,
+    onOpen: () -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -79,26 +78,24 @@ private fun ShareCard(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onShowMore) // ✅ 整个卡片可点击
+            .clickable(onClick = onOpen)   // 整卡可点进详情
     ) {
         Column(Modifier.padding(16.dp)) {
-            // 顶部：头像 + 名称 + 日期
+
+            // ① 顶部：头像 + 用户名
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AuthorAvatar(share.author.picture)
                 Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = share.author.userName?.takeIf { it.isNotBlank() }
-                            ?: "user${share.author.userId}",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(share.planDate, style = MaterialTheme.typography.labelSmall)
-                }
+                Text(
+                    text = share.author.userName?.takeIf { it.isNotBlank() }
+                        ?: "user${share.author.userId}",
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
 
             Spacer(Modifier.height(10.dp))
 
-            // 分享标题/内容
+            // ② 分享标题 / 详情
             val title = share.share.title
             if (!title.isNullOrBlank()) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
@@ -109,20 +106,24 @@ private fun ShareCard(
                 Spacer(Modifier.height(8.dp))
             }
 
-            // 计划预览：前两条
+            // ③ 前两条计划
             val preview = share.plans.take(2)
             preview.forEach { PlanRow(it) }
 
+            // ④ 省略与“更多”
             if (share.plans.size > 2) {
-                Spacer(Modifier.height(6.dp))
-                TextButton(onClick = onShowMore) { Text("Click to see plan details") }
+                Spacer(Modifier.height(4.dp))
+                Text("… …", style = MaterialTheme.typography.labelSmall)
+                Spacer(Modifier.height(2.dp))
+                TextButton(onClick = onOpen) {
+                    Text("Press to show more")
+                }
             }
 
             Spacer(Modifier.height(8.dp))
             HorizontalDivider()
 
-            // ✅ 右下角：likes / comments
-            val metaColor = MaterialTheme.colorScheme.onSurfaceVariant
+            // ⑤ 右下角：点赞 / 评论
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -130,30 +131,35 @@ private fun ShareCard(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    Icons.Outlined.FavoriteBorder,
-                    contentDescription = "likes",
-                    modifier = Modifier.size(16.dp),
-                    tint = metaColor
-                )
-                Spacer(Modifier.width(4.dp))
-                Text("${share.likes}", style = MaterialTheme.typography.labelSmall, color = metaColor)
+                IconButton(
+                    enabled = !likeLoading,
+                    onClick = onToggleLike
+                ) {
+                    if (likeLoading) {
+                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(
+                            imageVector = if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = if (liked) "Unlike" else "Like",
+                            tint = if (liked) MaterialTheme.colorScheme.error else LocalContentColor.current
+                        )
+                    }
+                }
+                Text("${share.likes}", style = MaterialTheme.typography.labelSmall)
 
                 Spacer(Modifier.width(12.dp))
 
                 Icon(
                     Icons.Outlined.ChatBubbleOutline,
                     contentDescription = "comments",
-                    modifier = Modifier.size(16.dp),
-                    tint = metaColor
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(4.dp))
-                Text("${share.comments}", style = MaterialTheme.typography.labelSmall, color = metaColor)
+                Text("${share.comments}", style = MaterialTheme.typography.labelSmall)
             }
         }
     }
 }
-
 @Composable
 private fun PlanRow(p: PlanBrief) {
     Row(

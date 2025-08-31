@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-08-28T22:21:26.738841900Z">
+        <DropdownSelection timestamp="2025-08-31T01:58:05.106413700Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=AS0609H001P82100234" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\14405\.android\avd\Nokia_G22_API_35.avd" />
             </handle>
           </Target>
         </DropdownSelection>

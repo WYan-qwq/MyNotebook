@@ -86,3 +86,8 @@ data class PlanBrief(
     val alarm: Int?,
     val finished: Int?
 )
+
+data class LikeRequest(
+    val shareId: Int,
+    val userId: Int
+)

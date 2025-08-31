@@ -42,4 +42,10 @@ interface ApiService {
 
     @GET("/api/share/list")
     suspend fun listShares(@Query("userId") userId: Int? = null): Response<List<ShareView>>
+
+    @POST("api/share/like")
+    suspend fun like(@Body body: LikeRequest): Response<Unit>
+
+    @POST("api/share/unlike")
+    suspend fun unlike(@Body body: LikeRequest): Response<Unit>
 }
