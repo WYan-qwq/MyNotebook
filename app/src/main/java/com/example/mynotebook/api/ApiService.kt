@@ -48,4 +48,9 @@ interface ApiService {
 
     @POST("api/share/unlike")
     suspend fun unlike(@Body body: LikeRequest): Response<Unit>
+    @GET("api/share/liked")
+    suspend fun hasLiked(
+        @Query("userId") userId: Int,
+        @Query("shareId") shareId: Int
+    ): Response<LikedResp>
 }

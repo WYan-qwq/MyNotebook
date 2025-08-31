@@ -91,3 +91,9 @@ data class LikeRequest(
     val shareId: Int,
     val userId: Int
 )
+
+data class LikedResp(
+    val userId:Int,
+    val shareId:Int,
+    val liked:Boolean
+)

@@ -36,7 +36,7 @@ fun ShareRoute(
     onOpenDetail: (Int) -> Unit
 ) {
     val ui by vm.ui.collectAsState()
-
+    LaunchedEffect(Unit) { if (ui.items.isEmpty()) vm.refresh(userId) }
     Scaffold(topBar = { TopAppBar(title = { Text("Share") }) }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {

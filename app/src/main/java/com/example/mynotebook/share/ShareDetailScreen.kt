@@ -10,6 +10,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,12 +32,12 @@ import com.example.mynotebook.api.PlanBrief
 fun ShareDetailScreen(
     shareId: Int,
     vm: ShareViewModel,
+    userId: Int,
     onBack: () -> Unit
 ) {
     val ui by vm.ui.collectAsState()
 
-    // 首次进入时拉列表（VM 内部自行去重即可）
-    LaunchedEffect(Unit) { if (!ui.loading && ui.items.isEmpty()) vm.refresh() }
+    LaunchedEffect(Unit) { if (ui.items.isEmpty()) vm.refresh(userId) }
 
     val share = remember(ui.items, shareId) { ui.items.find { it.sharingId == shareId } }
 
@@ -42,9 +45,7 @@ fun ShareDetailScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Share details") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
-                }
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } }
             )
         }
     ) { padding ->
@@ -53,21 +54,44 @@ fun ShareDetailScreen(
                 ui.loading && share == null -> CircularProgressIndicator(Modifier.align(Alignment.Center))
                 share == null -> Text("Not found", Modifier.align(Alignment.Center))
                 else -> {
+                    val liked = ui.liked.contains(share.sharingId)
+                    val likeLoading = ui.likeLoading.contains(share.sharingId)
+
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         item { ShareHeaderCard(share) }
+                        item { Text("Plans on ${share.planDate}", style = MaterialTheme.typography.titleMedium) }
+                        items(share.plans, key = { it.id }) { p -> PlanRowDetail(p) }
+
+                        // 底部操作区
                         item {
-                            Text(
-                                "Plans on ${share.planDate}",
-                                style = MaterialTheme.typography.titleMedium
-                            )
+                            HorizontalDivider()
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(enabled = !likeLoading, onClick = { vm.toggleLike(share, userId) }) {
+                                    if (likeLoading) {
+                                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                                    } else {
+                                        Icon(
+                                            imageVector = if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                            contentDescription = if (liked) "Unlike" else "Like",
+                                            tint = if (liked) MaterialTheme.colorScheme.error else LocalContentColor.current
+                                        )
+                                    }
+                                }
+                                Text("${share.likes}", style = MaterialTheme.typography.labelSmall)
+                                Spacer(Modifier.width(12.dp))
+                                Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = "comments", modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("${share.comments}", style = MaterialTheme.typography.labelSmall)
+                            }
+                            Spacer(Modifier.height(24.dp))
                         }
-                        items(share.plans, key = { it.id }) { p ->
-                            PlanRowDetail(p)
-                        }
-                        item { Spacer(Modifier.height(24.dp)) }
                     }
                 }
             }

@@ -146,6 +146,7 @@ fun HomeRoot(userId: Int) {
                 val id = backStackEntry.arguments!!.getInt("id")
                 ShareDetailScreen(
                     shareId = id,
+                    userId = userId,
                     vm = shareViewModel,          // 复用同一个 VM，点赞状态能同步
                     onBack = { innerNav.popBackStack() }
                 )
