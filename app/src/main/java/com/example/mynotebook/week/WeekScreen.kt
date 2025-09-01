@@ -23,7 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import java.time.format.DateTimeFormatter
-import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.material.icons.outlined.Share
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -34,6 +34,7 @@ fun WeekRoute(
     userId: Int,
     onNavigateToCalendar: () -> Unit, // 左上角返回/进入日历
     navController: NavHostController,
+    onShareDay: (String) -> Unit,
     vm: WeekViewModel = viewModel(factory = WeekViewModel.provideFactory(userId))
 ) {
     val ui by vm.ui.collectAsState()
@@ -149,14 +150,13 @@ fun WeekRoute(
                         onClick = { vm.toggleDay(g.date) },
                         onAction = {
                             navController.navigate("add")
-                            // 进入 Add 页后预填选中的日期
                             runCatching {
                                 navController.getBackStackEntry("add")
                                     .savedStateHandle["prefill_date"] = g.date.toString()
                             }
                         },
-                        showAction = isFuture
-
+                        showAction = isFuture,
+                        onShare = { onShareDay(g.date.toString()) }   // ✅ 新增：点分享
                     )
                 }
             }
@@ -171,7 +171,8 @@ private fun DaySummaryCard(
     expanded: Boolean,
     onClick: () -> Unit,
     showAction: Boolean,          // ✅ 新增：是否显示右侧操作按钮（用于未来日期）
-    onAction: () -> Unit          // ✅ 新增：点击后跳转到 Add 页
+    onAction: () -> Unit,
+    onShare: () -> Unit  // ✅ 新增：点击后跳转到 Add 页
 ) {
     // 仅有计划时展示表情；无计划不显示
     val face: String? = when {
@@ -221,7 +222,15 @@ private fun DaySummaryCard(
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
                     ) { Text(label, style = MaterialTheme.typography.labelSmall) }
                 } else {
-                    face?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        face?.let {
+                            Text(it, style = MaterialTheme.typography.titleLarge)
+                            Spacer(Modifier.width(6.dp))
+                        }
+                        IconButton(onClick = onShare) {
+                            Icon(Icons.Outlined.Share, contentDescription = "Share this day")
+                        }
+                    }
                 }
             }
 

@@ -24,8 +24,11 @@ import com.example.mynotebook.api.PlanBrief
 import com.example.mynotebook.api.ShareView
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,9 +39,10 @@ fun ShareRoute(
     onOpenDetail: (Int) -> Unit
 ) {
     val ui by vm.ui.collectAsState()
+    val ptr = rememberPullToRefreshState()
     LaunchedEffect(Unit) { if (ui.items.isEmpty()) vm.refresh(userId) }
     Scaffold(topBar = { TopAppBar(title = { Text("Share") }) }) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Box(Modifier.fillMaxSize().padding(padding).nestedScroll(ptr.nestedScrollConnection)) {
             when {
                 ui.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
                 ui.error != null -> Text(ui.error!!, Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.error)
@@ -60,6 +64,17 @@ fun ShareRoute(
                     }
                 }
             }
+            LaunchedEffect(ptr.isRefreshing) {
+                if (ptr.isRefreshing) {
+                    vm.refresh(userId)
+                    ptr.endRefresh()
+                }
+            }
+
+            PullToRefreshContainer(
+                state = ptr,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }

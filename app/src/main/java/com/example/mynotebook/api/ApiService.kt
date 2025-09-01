@@ -53,4 +53,13 @@ interface ApiService {
         @Query("userId") userId: Int,
         @Query("shareId") shareId: Int
     ): Response<LikedResp>
+
+    @POST("api/share/create")
+    suspend fun createShare(@Body req: ShareCreateRequest): Response<Unit>
+
+    @GET("api/plans/day")
+    suspend fun getPlansByDate(
+        @Query("userId") userId: Int,
+        @Query("date") date: String
+    ): Response<List<PlanBrief>>
 }

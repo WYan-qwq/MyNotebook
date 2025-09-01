@@ -20,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.mynotebook.plan.AddPlanScreen
 import com.example.mynotebook.plan.TodayPlansRoute
+import com.example.mynotebook.share.ShareCreateScreen
 import com.example.mynotebook.share.ShareDetailScreen
 import com.example.mynotebook.share.ShareRoute
 import com.example.mynotebook.share.ShareViewModel
@@ -119,7 +120,8 @@ fun HomeRoot(userId: Int) {
                 WeekRoute(
                     userId = userId,
                     navController = innerNav,                      // ✅ 传入
-                    onNavigateToCalendar = { innerNav.navigate("calendar") }
+                    onNavigateToCalendar = { innerNav.navigate("calendar") },
+                    onShareDay = { date -> innerNav.navigate("shareCreate/$date") }
                 )
             }
             composable("calendar") {
@@ -149,6 +151,27 @@ fun HomeRoot(userId: Int) {
                     userId = userId,
                     vm = shareViewModel,          // 复用同一个 VM，点赞状态能同步
                     onBack = { innerNav.popBackStack() }
+                )
+            }
+            composable(
+                route = "shareCreate/{date}",
+                arguments = listOf(navArgument("date") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val date = backStackEntry.arguments!!.getString("date")!!
+                ShareCreateScreen(
+                    userId = userId,
+                    date = date,
+                    navController = innerNav,
+                    shareVm = shareViewModel,
+                    onDone = {
+                        innerNav.popBackStack()
+                        // 成功后跳到 Share 列表
+                        innerNav.navigate(HomeTab.Share.route) {
+                            popUpTo(innerNav.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 )
             }
             composable(HomeTab.Me.route)    { ProfileStub() }

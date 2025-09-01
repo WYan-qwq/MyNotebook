@@ -97,3 +97,10 @@ data class LikedResp(
     val shareId:Int,
     val liked:Boolean
 )
+
+data class ShareCreateRequest(
+    val userId: Int,
+    val planDate: String,   // 形如 2025-08-31
+    val title: String?,
+    val details: String?
+)

@@ -24,6 +24,7 @@ object RetrofitClient {
         else HttpLoggingInterceptor.Level.NONE
     }
 
+
     private val client = OkHttpClient.Builder()
         .addInterceptor(logging)
         .connectTimeout(15, TimeUnit.SECONDS)

@@ -20,18 +20,21 @@ android {
     buildFeatures {
         buildConfig = true   // ← 打开 BuildConfig 生成
     }
-    buildTypes {
-        getByName("debug") {
-            // Kotlin DSL 里字符串一样要用转义的双引号
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
-        }
-        getByName("release") {
-            buildConfigField("String", "BASE_URL", "\"https://api.example.com/\"")
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+    android {
+        buildFeatures { buildConfig = true }
+
+        buildTypes {
+            getByName("debug") {
+                buildConfigField("String", "BASE_URL", "\"http://127.0.0.1:8080/\"")
+            }
+            getByName("release") {
+                buildConfigField("String", "BASE_URL", "\"https://api.example.com/\"")
+                isMinifyEnabled = false
+                proguardFiles(
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
+                )
+            }
         }
     }
     compileOptions {
@@ -84,5 +87,6 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("androidx.compose.material:material-icons-extended:<compose-version>")
+    implementation("androidx.compose.material:material:1.6.+")
 
 }
