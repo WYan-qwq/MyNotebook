@@ -2,6 +2,7 @@ package com.example.mynotebook.share
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mynotebook.api.CommentView
 import com.example.mynotebook.api.LikeRequest
 import com.example.mynotebook.api.RetrofitClient
 import com.example.mynotebook.api.ShareView
@@ -19,7 +20,11 @@ data class ShareUiState(
     val liked: Set<Int> = emptySet(),        // 已点赞的 sharingId 集合
     val likeLoading: Set<Int> = emptySet()   // 正在切换点赞状态的 sharingId
 )
-
+data class CommentsUi(
+    val loading: Boolean = false,
+    val error: String? = null,
+    val items: List<CommentView> = emptyList()
+)
 class ShareViewModel : ViewModel() {
     private val _ui = MutableStateFlow(ShareUiState())
     val ui: StateFlow<ShareUiState> = _ui
@@ -129,4 +134,41 @@ class ShareViewModel : ViewModel() {
                 }
             }.mapNotNull { it.await() }.toSet()
         }
+    private val _comments = MutableStateFlow<Map<Int, CommentsUi>>(emptyMap())
+    val comments: StateFlow<Map<Int, CommentsUi>> = _comments
+
+    fun loadComments(shareId: Int) = viewModelScope.launch {
+        _comments.update { it + (shareId to (it[shareId]?.copy(loading = true, error = null)
+            ?: CommentsUi(loading = true))) }
+        try {
+            val resp = RetrofitClient.api.listComments(shareId)
+            if (resp.isSuccessful) {
+                _comments.update { it + (shareId to CommentsUi(items = resp.body().orEmpty())) }
+            } else {
+                _comments.update { it + (shareId to CommentsUi(error = "Load comments failed: ${resp.code()}")) }
+            }
+        } catch (e: Exception) {
+            _comments.update { it + (shareId to CommentsUi(error = e.message ?: "Network error")) }
+        }
+    }
+
+    fun deleteComment(shareId: Int, commentId: Int) = viewModelScope.launch {
+        // 简单做法：直接调用，成功后刷新
+        try {
+            val resp = RetrofitClient.api.deleteComment(commentId)
+            if (resp.isSuccessful) {
+                loadComments(shareId)
+            } else {
+                _comments.update { m ->
+                    val old = m[shareId] ?: CommentsUi()
+                    m + (shareId to old.copy(error = "Delete failed: ${resp.code()}"))
+                }
+            }
+        } catch (e: Exception) {
+            _comments.update { m ->
+                val old = m[shareId] ?: CommentsUi()
+                m + (shareId to old.copy(error = e.message ?: "Network error"))
+            }
+        }
+    }
 }

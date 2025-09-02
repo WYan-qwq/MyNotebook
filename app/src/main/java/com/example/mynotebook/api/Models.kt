@@ -104,3 +104,29 @@ data class ShareCreateRequest(
     val title: String?,
     val details: String?
 )
+
+data class AuthorBrief(
+    val userId: Int,
+    val userName: String?,
+    val picture: String?
+)
+
+data class CommentView(
+    val commentId: Int,
+    val sharingId: Int,
+    val userId: Int?,                 // 兼容后端老字段（有 author 就用 author.userId）
+    val author: AuthorBrief?,         // 后端已按我们之前改动返回 author
+    val content: String?,
+    val createTime: String,
+    val preCommentId: Int?,           // 父评论 id（可能指向一个已删除的评论）
+    val children: List<CommentView> = emptyList(),
+    val deleted: Boolean = false,
+)
+
+data class CommentCreateRequest(
+    val userId: Int,
+    val sharingId: Int,
+    val content: String,
+    val createTime: String,
+    val preCommentId: Int? = null
+)
