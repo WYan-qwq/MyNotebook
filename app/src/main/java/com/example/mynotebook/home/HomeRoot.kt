@@ -20,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.mynotebook.me.AccountScreen
 import com.example.mynotebook.me.MeRoute
+import com.example.mynotebook.me.MeViewModel
 import com.example.mynotebook.plan.AddPlanScreen
 import com.example.mynotebook.plan.TodayPlansRoute
 import com.example.mynotebook.share.ShareCreateScreen
@@ -36,6 +37,7 @@ fun HomeRoot(userId: Int) {
     val currentRoute = backStackEntry?.destination?.route.orEmpty()
     val snackbarHostState = remember { SnackbarHostState() }
     val shareViewModel: ShareViewModel = viewModel()
+    val meViewModel: MeViewModel = viewModel()
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -184,12 +186,14 @@ fun HomeRoot(userId: Int) {
             }
             composable(HomeTab.Me.route)    { MeRoute(
                 userId = userId,
-                onOpenMyShare = { innerNav.navigate("myShare") },
-                onOpenAccount = { innerNav.navigate("account") }
+                vm = meViewModel,                 // ✅ 必传
+                onOpenAccount = { innerNav.navigate("account") },
+                onOpenMyShare = { innerNav.navigate("myShare") }
             )}
             composable("account") {
                 AccountScreen(
                     userId = userId,
+                    vm = meViewModel,                 // ✅ 必传
                     onBack = { innerNav.popBackStack() }
                 )
             }

@@ -34,6 +34,7 @@ import com.example.mynotebook.R
 import com.example.mynotebook.api.AuthorBrief
 import com.example.mynotebook.api.CommentView
 import com.example.mynotebook.api.PlanBrief
+import com.example.mynotebook.ui.components.AuthorAvatar
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -207,7 +208,7 @@ private fun ShareHeaderCard(share: com.example.mynotebook.api.ShareView) {
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AvatarImage(share.author.picture)
+                AuthorAvatar(picture = share.author?.picture, size = 40.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     val displayName = share.author.userName?.takeIf { it.isNotBlank() } ?: "user${share.author.userId}"
@@ -262,35 +263,7 @@ private fun PlanRowDetail(p: PlanBrief) {
     }
 }
 
-/**
- * 头像（空值安全）。picture 为 null 或空白时使用占位图。
- * 不调用 trim()，避免 NPE。
- */
-@Composable
-private fun AvatarImage(
-    picture: String?,
-    size: Dp = 40.dp
-) {
-    val url = picture?.takeIf { it.isNotBlank() }
 
-    if (url != null) {
-        AsyncImage(
-            model = url,
-            contentDescription = "avatar",
-            modifier = Modifier.size(size).clip(CircleShape),
-            placeholder = painterResource(R.drawable.init), // 你的占位 png
-            error = painterResource(R.drawable.init),
-            contentScale = ContentScale.Crop
-        )
-    } else {
-        Image(
-            painter = painterResource(R.drawable.init),
-            contentDescription = "avatar",
-            modifier = Modifier.size(size).clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
-    }
-}
 @Composable
 private fun CommentsSection(
     shareId: Int,
@@ -404,7 +377,10 @@ private fun CommentRow(
     onDelete: () -> Unit
 ) {
     Row(Modifier.fillMaxWidth()) {
-        AuthorAvatar(author.picture, size = 32.dp)
+        AuthorAvatar(
+            picture = author.picture,   // ✅ 用 author，而不是 comment
+            size = 32.dp
+        )
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -437,27 +413,6 @@ private fun CommentRow(
                 }
             }
         }
-    }
-}
-@Composable
-private fun AuthorAvatar(picture: String?, size: Dp = 40.dp) {
-    val url = picture?.takeUnless { it.isBlank() }
-    if (url != null) {
-        AsyncImage(
-            model = url,
-            contentDescription = "avatar",
-            modifier = Modifier.size(size).clip(CircleShape),
-            placeholder = painterResource(R.drawable.init),
-            error = painterResource(R.drawable.init),
-            contentScale = ContentScale.Crop
-        )
-    } else {
-        Image(
-            painter = painterResource(R.drawable.init),
-            contentDescription = "avatar",
-            modifier = Modifier.size(size).clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
     }
 }
 

@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
+import com.example.mynotebook.ui.components.AuthorAvatar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +100,7 @@ private fun ShareCard(
 
             // ① 顶部：头像 + 用户名
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AuthorAvatar(share.author.picture)
+                AuthorAvatar(picture = share.author?.picture, size = 40.dp)
                 Spacer(Modifier.width(12.dp))
                 Text(
                     text = share.author.userName?.takeIf { it.isNotBlank() }
@@ -196,31 +197,5 @@ private fun PlanRow(p: PlanBrief) {
             }
         }
         // 不显示对号/叉号
-    }
-}
-
-/** 头像兜底：为空或空串用本地占位图，避免 NPE */
-@Composable
-private fun AuthorAvatar(
-    picture: String?,           // 允许为 null
-    size: Dp = 40.dp
-) {
-    val url = picture?.takeUnless { it.isBlank() }
-    if (url != null) {
-        AsyncImage(
-            model = url,
-            contentDescription = "avatar",
-            modifier = Modifier.size(size).clip(CircleShape),
-            placeholder = painterResource(R.drawable.init),
-            error = painterResource(R.drawable.init),
-            contentScale = ContentScale.Crop
-        )
-    } else {
-        Image(
-            painter = painterResource(R.drawable.init),
-            contentDescription = "avatar",
-            modifier = Modifier.size(size).clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
     }
 }

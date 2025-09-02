@@ -139,10 +139,15 @@ data class ProfileResponse(
 )
 
 data class UpdateProfileRequest(
-    val userName: String?,   // 传 null 表示不改
-    val picture: String?
+    val userName: String? = null,
+    val picture: String? = null
 )
 
 data class ChangePasswordRequest(
     val newPassword: String
+)
+
+data class UploadAvatarResponse(
+    val url: String,
+    val user: ProfileResponse
 )

@@ -21,6 +21,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.example.mynotebook.BuildConfig
 import com.example.mynotebook.R
 import com.example.mynotebook.api.ProfileResponse
 
@@ -39,14 +40,15 @@ fun MeRoute(
     var showFeedback by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Me") }) }
-    ) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text("Me") }) }) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
                 ui.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                ui.error != null -> Text(ui.error!!, color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center))
+                ui.error != null -> Text(
+                    ui.error!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.align(Alignment.Center)
+                )
                 else -> {
                     Column(Modifier.fillMaxSize().padding(16.dp)) {
                         Header(profile = ui.profile)
@@ -67,9 +69,7 @@ fun MeRoute(
             onDismissRequest = { showHelp = false },
             title = { Text("Help") },
             text = { Text("A quick guide will be added later. Stay tuned!") },
-            confirmButton = {
-                TextButton(onClick = { showHelp = false }) { Text("OK") }
-            }
+            confirmButton = { TextButton(onClick = { showHelp = false }) { Text("OK") } }
         )
     }
 
@@ -93,7 +93,7 @@ private fun Header(profile: ProfileResponse?) {
             )
         } else {
             AsyncImage(
-                model = profile!!.picture,
+                model = toFullUrl(profile!!.picture),
                 contentDescription = null,
                 modifier = Modifier.size(size).clip(CircleShape),
                 placeholder = androidx.compose.ui.res.painterResource(R.drawable.init),
@@ -102,11 +102,16 @@ private fun Header(profile: ProfileResponse?) {
         }
         Spacer(Modifier.width(16.dp))
         Column {
-            Text(profile?.userName?.ifBlank { "User ${profile.id}" } ?: "User ${profile?.id ?: ""}",
-                style = MaterialTheme.typography.titleLarge)
+            Text(
+                profile?.userName?.ifBlank { "User ${profile.id}" } ?: "User ${profile?.id ?: ""}",
+                style = MaterialTheme.typography.titleLarge
+            )
             profile?.email?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -117,9 +122,7 @@ private fun SettingsItem(title: String, onClick: () -> Unit) {
     ListItem(
         headlineContent = { Text(title) },
         trailingContent = { Icon(Icons.Outlined.ChevronRight, contentDescription = null) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
     )
     HorizontalDivider()
 }
@@ -136,7 +139,6 @@ private fun FeedbackDialog(onDismiss: () -> Unit) {
         text = { Text("If you have any questions or suggestions,\nplease send an email to $email") },
         confirmButton = {
             TextButton(onClick = {
-                // 打开邮件
                 val intent = Intent(Intent.ACTION_SENDTO).apply {
                     data = Uri.parse("mailto:$email")
                     putExtra(Intent.EXTRA_SUBJECT, "MyNotebook Feedback")
@@ -155,63 +157,11 @@ private fun FeedbackDialog(onDismiss: () -> Unit) {
         }
     )
 }
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AccountScreen(
-    userId: Int,
-    vm: MeViewModel = viewModel(),
-    onBack: () -> Unit
-) {
-    val ui by vm.ui.collectAsState()
-    LaunchedEffect(Unit) { if (ui.profile == null) vm.load(userId) }
 
-    var name by remember(ui.profile) { mutableStateOf(ui.profile?.userName.orEmpty()) }
-    var picture by remember(ui.profile) { mutableStateOf(ui.profile?.picture.orEmpty()) }
-    var password by remember { mutableStateOf("") }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("My account") },
-                navigationIcon = { IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) } }
-            )
-        }
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
-            if (ui.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-            ui.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            ui.savingError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-
-            OutlinedTextField(
-                value = name, onValueChange = { name = it },
-                label = { Text("Username") }, modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = picture, onValueChange = { picture = it },
-                label = { Text("Avatar URL") }, modifier = Modifier.fillMaxWidth()
-            )
-
-            Button(
-                onClick = { vm.updateProfile(userId, name.trim(), picture.trim()) },
-                enabled = !ui.saving,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(if (ui.saving) "Saving…" else "Save profile") }
-
-            Divider(Modifier.padding(vertical = 8.dp))
-
-            OutlinedTextField(
-                value = password, onValueChange = { password = it },
-                label = { Text("New password") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Button(
-                onClick = { vm.changePassword(userId, password.trim()) },
-                enabled = password.isNotBlank() && !ui.saving,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(if (ui.saving) "Saving…" else "Change password") }
-        }
-    }
+/** 把相对路径转成完整 URL（例如 `/files/avatars/a.jpg` -> `BASE_URL/files/avatars/a.jpg`） */
+private fun toFullUrl(path: String?): String? {
+    if (path.isNullOrBlank()) return null
+    val p = path.trim()
+    return if (p.startsWith("http", ignoreCase = true)) p
+    else BuildConfig.BASE_URL.trimEnd('/') + "/" + p.trimStart('/')
 }
