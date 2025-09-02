@@ -59,7 +59,7 @@ fun ShareRoute(
                             share = share,
                             liked = liked,
                             likeLoading = likeLoading,
-                            onToggleLike = { vm.toggleLike(share, userId) },
+                            onToggleLike = { vm.toggleLikeById(share.sharingId, userId)  },
                             onOpen = { onOpenDetail(share.sharingId) }
                         )
                     }

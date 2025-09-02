@@ -129,7 +129,7 @@ fun ShareDetailScreen(
                                 horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                IconButton(enabled = !likeLoading, onClick = { vm.toggleLike(share, userId) }) {
+                                IconButton(enabled = !likeLoading, onClick = { vm.toggleLikeById(share.sharingId, userId) }) {
                                     if (likeLoading) {
                                         CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                                     } else {

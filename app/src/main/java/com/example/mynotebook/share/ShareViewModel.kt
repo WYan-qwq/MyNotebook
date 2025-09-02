@@ -67,44 +67,7 @@ class ShareViewModel : ViewModel() {
      * 点赞/取消赞（乐观更新 + 失败回滚；对 404/409 做幂等处理）
      */
     fun toggleLike(share: ShareView, userId: Int) = viewModelScope.launch {
-        val id = share.sharingId
-        val state = _ui.value
-        if (state.likeLoading.contains(id)) return@launch
-
-        val currentlyLiked = state.liked.contains(id)
-
-        // 1) 乐观更新
-        _ui.update {
-            it.copy(
-                likeLoading = it.likeLoading + id,
-                liked = if (currentlyLiked) it.liked - id else it.liked + id,
-                items = it.items.map { s ->
-                    if (s.sharingId == id)
-                        s.copy(likes = s.likes + if (currentlyLiked) -1 else +1)
-                    else s
-                }
-            )
-        }
-
-        try {
-            val body = LikeRequest(shareId = id, userId = userId)
-            val resp = if (currentlyLiked) {
-                RetrofitClient.api.unlike(body)
-            } else {
-                RetrofitClient.api.like(body)
-            }
-
-            // 把 404(已取消过) / 409(已点过赞) 当作幂等成功
-            val ok = resp.isSuccessful ||
-                    (currentlyLiked && resp.code() == 404) ||
-                    (!currentlyLiked && resp.code() == 409)
-
-            if (!ok) rollbackLike(id, currentlyLiked)
-        } catch (_: Exception) {
-            rollbackLike(id, currentlyLiked)
-        } finally {
-            _ui.update { it.copy(likeLoading = it.likeLoading - id) }
-        }
+        toggleLikeById(share.sharingId, userId)
     }
 
     private fun rollbackLike(shareId: Int, wasLiked: Boolean) {
@@ -215,4 +178,45 @@ class ShareViewModel : ViewModel() {
             }
         }
     }
+    fun toggleLikeById(shareId: Int, userId: Int) = viewModelScope.launch {
+        val state = _ui.value
+        if (state.likeLoading.contains(shareId)) return@launch
+
+        val currentlyLiked = state.liked.contains(shareId)
+
+        // 1) 乐观更新
+        _ui.update {
+            it.copy(
+                likeLoading = it.likeLoading + shareId,
+                liked = if (currentlyLiked) it.liked - shareId else it.liked + shareId,
+                items = it.items.map { s ->
+                    if (s.sharingId == shareId) {
+                        // 防止出现负数
+                        s.copy(likes = (s.likes + if (currentlyLiked) -1 else +1).coerceAtLeast(0))
+                    } else s
+                }
+            )
+        }
+
+        try {
+            val body = LikeRequest(shareId = shareId, userId = userId)
+            val resp = if (currentlyLiked) {
+                RetrofitClient.api.unlike(body)
+            } else {
+                RetrofitClient.api.like(body)
+            }
+
+            // 404(已无 like) / 409(已存在 like) 视作幂等成功
+            val ok = resp.isSuccessful ||
+                    (currentlyLiked && resp.code() == 404) ||
+                    (!currentlyLiked && resp.code() == 409)
+
+            if (!ok) rollbackLike(shareId, currentlyLiked)
+        } catch (_: Exception) {
+            rollbackLike(shareId, currentlyLiked)
+        } finally {
+            _ui.update { it.copy(likeLoading = it.likeLoading - shareId) }
+        }
+    }
+
 }
