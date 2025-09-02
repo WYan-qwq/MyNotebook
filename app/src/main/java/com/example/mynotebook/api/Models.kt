@@ -128,5 +128,5 @@ data class CommentCreateRequest(
     val sharingId: Int,
     val content: String,
     val createTime: String,
-    val preCommentId: Int? = null
+    val preCommentId: Int?
 )

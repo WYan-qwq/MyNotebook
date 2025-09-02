@@ -66,12 +66,14 @@ interface ApiService {
     @GET("api/share/{id}/comments")
     suspend fun listComments(@Path("id") shareId: Int): Response<List<CommentView>>
 
-    @POST("api/share/{id}/addcomments")
-    suspend fun createComment(
-        @Path("id") shareId: Int,
-        @Body body: CommentCreateRequest
-    ): Response<Any>
-
     @DELETE("api/share/deletecomments/{commentId}")
     suspend fun deleteComment(@Path("commentId") commentId: Int): Response<Any>
+
+    @POST("api/share/{id}/addcomments")
+    suspend fun addComment(
+        @Path("id") id: Int,
+        @Body body: CommentCreateRequest
+    ): Response<Unit>
+
 }
+

@@ -93,13 +93,19 @@ fun HomeRoot(userId: Int) {
 
         // ✅ 把 FAB 放到 Scaffold，并指定居中；再向下偏移一点形成“镶嵌”
         floatingActionButton = {
-            LargeFloatingActionButton(
+            // 小号 FAB，更接近你第二张图的大小
+            SmallFloatingActionButton(
                 onClick = { innerNav.navigate("add") },
                 modifier = Modifier
-                    .offset(y = 65.dp)           // 下沉到 BottomAppBar 里，数值可微调 18–32dp
-                    .navigationBarsPadding()     // 避免被系统手势条顶住
+                    // 略微下沉一点点，让它更贴近底栏（按需要微调 6~14dp）
+                    .offset(y = 50.dp)
             ) {
-                Icon(Icons.Rounded.Add, contentDescription = "Add")
+                // 再把内部的 + 图标也略缩小
+                Icon(
+                    Icons.Rounded.Add,
+                    contentDescription = "Add",
+                    modifier = Modifier.size(40.dp)   // 默认 24dp，缩小到 18dp
+                )
             }
         },
         floatingActionButtonPosition = FabPosition.Center

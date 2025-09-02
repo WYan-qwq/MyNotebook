@@ -14,12 +14,17 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.Dp
@@ -29,6 +34,8 @@ import com.example.mynotebook.R
 import com.example.mynotebook.api.AuthorBrief
 import com.example.mynotebook.api.CommentView
 import com.example.mynotebook.api.PlanBrief
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +54,12 @@ fun ShareDetailScreen(
     LaunchedEffect(Unit) { if (ui.items.isEmpty()) vm.refresh(userId) }
 
     val share = remember(ui.items, shareId) { ui.items.find { it.sharingId == shareId } }
+    val scope = rememberCoroutineScope()
+    var replyTarget by remember { mutableStateOf<CommentView?>(null) }  // 选中的被回复评论
+    val focusRequester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    var input by rememberSaveable(shareId) { mutableStateOf("") }
+    var replyTo by rememberSaveable(shareId) { mutableStateOf<CommentView?>(null) }
 
     Scaffold(
         topBar = {
@@ -54,7 +67,38 @@ fun ShareDetailScreen(
                 title = { Text("Share details") },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } }
             )
-        }
+        },
+        bottomBar = {
+            val replyName: String? = replyTo?.author?.userName
+                ?.takeIf { it.isNotBlank() }
+                ?: replyTo?.author?.userId?.let { "user$it" }
+
+            CommentInputBar(
+                text = input,
+                hint = if (replyTo != null)
+                    "Reply to @${replyName ?: ""}"
+                else
+                    "Write a comment…",
+                onTextChange = { input = it },
+                onSend = {
+                    val txt = input.trim()
+                    if (txt.isNotEmpty()) {
+                        vm.addComment(
+                            shareId = shareId,
+                            userId = userId,
+                            content = txt,
+                            preCommentId = replyTo?.commentId    // ✅ 安全调用
+                        )
+                        // 清空本地状态
+                        replyTo = null
+                        input = ""                               // ✅ 不要用 `input ?: ""`
+                    }
+                }
+            )
+        },
+
+        // ✅ 关闭 Scaffold 的默认系统 inset，避免与 bottomBar/navi 再叠加造成空白
+        contentWindowInsets = WindowInsets(0)
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
@@ -65,7 +109,13 @@ fun ShareDetailScreen(
                     val likeLoading = ui.likeLoading.contains(share.sharingId)
 
                     LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        // ✅ 只给一点底部内边距，避免被 bottomBar 遮住即可
+                        contentPadding = PaddingValues(
+                            start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp
+                        ),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         item { ShareHeaderCard(share) }
@@ -126,11 +176,15 @@ fun ShareDetailScreen(
                                         currentUserId = userId,
                                         roots = cu.items,
                                         onReply = { target ->
-                                            // TODO: 打开输入框，带 preCommentId = target.commentId
+                                            replyTarget = target
+                                            // 聚焦输入框并展开键盘
+                                            scope.launch {
+                                                delay(50)
+                                                focusRequester.requestFocus()
+                                                keyboard?.show()
+                                            }
                                         },
-                                        onDelete = { target ->
-                                            vm.deleteComment(shareId, target.commentId)
-                                        },
+                                        onDelete = { target -> vm.deleteComment(shareId, target.commentId) },
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                 }
@@ -404,5 +458,47 @@ private fun AuthorAvatar(picture: String?, size: Dp = 40.dp) {
             modifier = Modifier.size(size).clip(CircleShape),
             contentScale = ContentScale.Crop
         )
+    }
+}
+
+@Composable
+private fun CommentInputBar(
+    text: String,
+    hint: String,
+    onTextChange: (String) -> Unit,
+    onSend: () -> Unit,
+) {
+    Surface(
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .imePadding()               // ✅ 跟随键盘抬起
+                .navigationBarsPadding()     // ✅ 仅在底部避让系统手势条
+                .padding(horizontal = 12.dp, vertical = 6.dp), // ✅ 很小的上下内边距，留白更小
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextField(
+                value = text,
+                onValueChange = onTextChange,
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                placeholder = { Text(hint) },
+                shape = RoundedCornerShape(12.dp),
+                colors = TextFieldDefaults.colors(
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
+            )
+            Spacer(Modifier.width(8.dp))
+            FilledIconButton(
+                onClick = onSend,
+                enabled = text.isNotBlank()
+            ) {
+                Icon(Icons.Rounded.Send, contentDescription = "Send")
+            }
+        }
     }
 }
