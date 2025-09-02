@@ -16,12 +16,13 @@ import com.example.mynotebook.auth.LoginScreen
 import com.example.mynotebook.auth.RegisterScreen
 import com.example.mynotebook.home.HomeRoot
 import com.example.mynotebook.plan.TodayPlansRoute
+import com.example.mynotebook.ui.theme.MyNotebookTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            MyNotebookTheme {
                 val nav = rememberNavController()
 
                 NavHost(navController = nav, startDestination = "login") {
@@ -58,7 +59,7 @@ class MainActivity : ComponentActivity() {
                         arguments = listOf(navArgument("userId") { type = NavType.IntType })
                     ) { backStack ->
                         val userId = backStack.arguments?.getInt("userId") ?: 0
-                        HomeRoot(userId = userId)
+                        HomeRoot(userId = userId, navController = nav)
                     }
                 }
             }

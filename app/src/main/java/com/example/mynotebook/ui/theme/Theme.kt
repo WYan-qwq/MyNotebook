@@ -9,49 +9,47 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+private val LightColors = lightColorScheme(
+    // 主色：影响 Filled Button、Switch 等
+    primary = Brown500,
     onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
-)
+    primaryContainer = Brown600,
+    onPrimaryContainer = Color.White,
 
+    // 次级色：影响部分控件的次要样式
+    secondary = Brown700,
+    onSecondary = Color.White,
+    secondaryContainer = Sand,
+    onSecondaryContainer = Color(0xFF3B2A17),
+
+    // 第三色（可做强调）
+    tertiary = Sand,
+    onTertiary = Color(0xFF3B2A17),
+
+    // 背景/表面：奶白
+    background = MilkWhite,
+    onBackground = TextPrimary,
+    surface = MilkWhite,
+    onSurface = TextPrimary,
+    surfaceVariant = MilkWhite2,
+    onSurfaceVariant = TextSecondary,
+
+    outline = OutlineColor,
+
+    // 错误色（保留默认或自定义）
+    error = Color(0xFFB00020),
+    onError = Color.White,
+)
 @Composable
-fun MyNotebookTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+fun MyNotebookTheme(   // ← 如需保持原有函数名，改成你项目原先的名字
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
+    // 这里不启用动态取色，确保不会被系统配色覆盖
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = LightColors,
         typography = Typography,
         content = content
     )

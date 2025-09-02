@@ -20,6 +20,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.mynotebook.BuildConfig
 import com.example.mynotebook.R
@@ -29,8 +31,8 @@ import com.example.mynotebook.api.ProfileResponse
 @Composable
 fun MeRoute(
     userId: Int,
-    onOpenMyShare: () -> Unit,
     onOpenAccount: () -> Unit,
+    appNav: NavHostController,
     vm: MeViewModel = viewModel()
 ) {
     val ui by vm.ui.collectAsState()
@@ -54,10 +56,18 @@ fun MeRoute(
                         Header(profile = ui.profile)
 
                         Spacer(Modifier.height(16.dp))
-                        SettingsItem(title = "My share", onClick = onOpenMyShare)
                         SettingsItem(title = "My account", onClick = onOpenAccount)
                         SettingsItem(title = "Help", onClick = { showHelp = true })
                         SettingsItem(title = "Feedback", onClick = { showFeedback = true })
+                        SettingsItem(title = "Logout", onClick = {
+                            // 直接跳到登录界面，并清空返回栈，避免点返回又回到“我”页
+                            appNav.navigate("login") {
+                                popUpTo(appNav.graph.findStartDestination().id) {
+                                    inclusive = false  // 起点是 login，本身不要移除
+                                }
+                                launchSingleTop = true
+                            }}
+                        )
                     }
                 }
             }

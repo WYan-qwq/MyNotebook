@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -31,7 +33,7 @@ import com.example.mynotebook.week.MonthCalendarScreen
 import com.example.mynotebook.week.WeekRoute
 
 @Composable
-fun HomeRoot(userId: Int) {
+fun HomeRoot(userId: Int, navController: NavHostController,) {
     val innerNav = rememberNavController()
     val backStackEntry by innerNav.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route.orEmpty()
@@ -187,8 +189,8 @@ fun HomeRoot(userId: Int) {
             composable(HomeTab.Me.route)    { MeRoute(
                 userId = userId,
                 vm = meViewModel,                 // ✅ 必传
-                onOpenAccount = { innerNav.navigate("account") },
-                onOpenMyShare = { innerNav.navigate("myShare") }
+                appNav = navController,
+                onOpenAccount = { innerNav.navigate("account") }
             )}
             composable("account") {
                 AccountScreen(
