@@ -1,15 +1,12 @@
 package com.example.mynotebook.share
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -20,17 +17,11 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import com.example.mynotebook.R
 import com.example.mynotebook.api.AuthorBrief
 import com.example.mynotebook.api.CommentView
 import com.example.mynotebook.api.PlanBrief
@@ -49,24 +40,38 @@ fun ShareDetailScreen(
     val ui by vm.ui.collectAsState()
     val commentsMap by vm.comments.collectAsState()
     val cu = commentsMap[shareId]
-    LaunchedEffect(shareId) {
-        vm.loadComments(shareId)
-    }
+
+    // 首次进入加载评论
+    LaunchedEffect(shareId) { vm.loadComments(shareId) }
     LaunchedEffect(Unit) { if (ui.items.isEmpty()) vm.refresh(userId) }
 
     val share = remember(ui.items, shareId) { ui.items.find { it.sharingId == shareId } }
-    val scope = rememberCoroutineScope()
-    var replyTarget by remember { mutableStateOf<CommentView?>(null) }  // 选中的被回复评论
-    val focusRequester = remember { FocusRequester() }
+
+    // ==== 回复相关状态 & 焦点管理 ====
     val keyboard = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
     var input by rememberSaveable(shareId) { mutableStateOf("") }
     var replyTo by rememberSaveable(shareId) { mutableStateOf<CommentView?>(null) }
+
+    // 当设置了 replyTo 时，在组合完成后请求焦点并显示键盘
+    LaunchedEffect(replyTo) {
+        if (replyTo != null) {
+            // 稍等一帧，确保 TextField 已经出现在树上
+            delay(50)
+            focusRequester.requestFocus()
+            keyboard?.show()
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Share details") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } }
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                    }
+                }
             )
         },
         bottomBar = {
@@ -76,10 +81,7 @@ fun ShareDetailScreen(
 
             CommentInputBar(
                 text = input,
-                hint = if (replyTo != null)
-                    "Reply to @${replyName ?: ""}"
-                else
-                    "Write a comment…",
+                hint = if (replyTo != null) "Reply to @${replyName ?: ""}" else "Write a comment…",
                 onTextChange = { input = it },
                 onSend = {
                     val txt = input.trim()
@@ -88,17 +90,17 @@ fun ShareDetailScreen(
                             shareId = shareId,
                             userId = userId,
                             content = txt,
-                            preCommentId = replyTo?.commentId    // ✅ 安全调用
+                            preCommentId = replyTo?.commentId
                         )
-                        // 清空本地状态
+                        // 发送后清空
                         replyTo = null
-                        input = ""                               // ✅ 不要用 `input ?: ""`
+                        input = ""
                     }
-                }
+                },
+                focusRequester = focusRequester    // ✅ 把 FocusRequester 传给输入框
             )
         },
-
-        // ✅ 关闭 Scaffold 的默认系统 inset，避免与 bottomBar/navi 再叠加造成空白
+        // 关闭默认系统 inset，避免和 bottomBar/navi 叠加留白
         contentWindowInsets = WindowInsets(0)
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -110,10 +112,7 @@ fun ShareDetailScreen(
                     val likeLoading = ui.likeLoading.contains(share.sharingId)
 
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                        // ✅ 只给一点底部内边距，避免被 bottomBar 遮住即可
+                        modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
                             start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp
                         ),
@@ -156,7 +155,7 @@ fun ShareDetailScreen(
                             Text("Comments", style = MaterialTheme.typography.titleMedium)
                         }
 
-                        // 评论区内容（把 when 也放进一个 item 中）
+                        // 评论区内容
                         item {
                             when {
                                 cu == null || cu.loading -> {
@@ -177,13 +176,8 @@ fun ShareDetailScreen(
                                         currentUserId = userId,
                                         roots = cu.items,
                                         onReply = { target ->
-                                            replyTarget = target
-                                            // 聚焦输入框并展开键盘
-                                            scope.launch {
-                                                delay(50)
-                                                focusRequester.requestFocus()
-                                                keyboard?.show()
-                                            }
+                                            // ✅ 设置 replyTo，LaunchedEffect(replyTo) 会负责拉起焦点/键盘
+                                            replyTo = target
                                         },
                                         onDelete = { target -> vm.deleteComment(shareId, target.commentId) },
                                         modifier = Modifier.fillMaxWidth()
@@ -263,7 +257,6 @@ private fun PlanRowDetail(p: PlanBrief) {
     }
 }
 
-
 @Composable
 private fun CommentsSection(
     shareId: Int,
@@ -273,7 +266,6 @@ private fun CommentsSection(
     onDelete: (CommentView) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 为了处理“父已删除”的占位，我们准备一个 map 方便判断
     val presentIds = remember(roots) { collectAllIds(roots).toSet() }
 
     Column(modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -316,7 +308,6 @@ private fun CommentNode(
 ) {
     Column(Modifier.fillMaxWidth().padding(start = (level * 16).dp)) {
 
-        // 如果父评论被删除（preCommentId 不为空但不在 presentIds 中），先放一条固定占位
         if (node.preCommentId != null && node.preCommentId !in presentIds) {
             DeletedPlaceholder()
             Spacer(Modifier.height(4.dp))
@@ -335,7 +326,6 @@ private fun CommentNode(
             onDelete = { onDelete(node) }
         )
 
-        // 子评论递归
         node.children.forEach {
             Spacer(Modifier.height(6.dp))
             CommentNode(
@@ -377,10 +367,7 @@ private fun CommentRow(
     onDelete: () -> Unit
 ) {
     Row(Modifier.fillMaxWidth()) {
-        AuthorAvatar(
-            picture = author.picture,   // ✅ 用 author，而不是 comment
-            size = 32.dp
-        )
+        AuthorAvatar(picture = author.picture, size = 32.dp)
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -422,22 +409,23 @@ private fun CommentInputBar(
     hint: String,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
+    focusRequester: FocusRequester
 ) {
-    Surface(
-        tonalElevation = 2.dp
-    ) {
+    Surface(tonalElevation = 2.dp) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .imePadding()               // ✅ 跟随键盘抬起
-                .navigationBarsPadding()     // ✅ 仅在底部避让系统手势条
-                .padding(horizontal = 12.dp, vertical = 6.dp), // ✅ 很小的上下内边距，留白更小
+                .imePadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextField(
                 value = text,
                 onValueChange = onTextChange,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focusRequester), // ✅ 必须挂上
                 singleLine = true,
                 placeholder = { Text(hint) },
                 shape = RoundedCornerShape(12.dp),
@@ -448,10 +436,7 @@ private fun CommentInputBar(
                 )
             )
             Spacer(Modifier.width(8.dp))
-            FilledIconButton(
-                onClick = onSend,
-                enabled = text.isNotBlank()
-            ) {
+            FilledIconButton(onClick = onSend, enabled = text.isNotBlank()) {
                 Icon(Icons.Rounded.Send, contentDescription = "Send")
             }
         }
