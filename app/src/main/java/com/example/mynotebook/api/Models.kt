@@ -130,3 +130,19 @@ data class CommentCreateRequest(
     val createTime: String,
     val preCommentId: Int?
 )
+
+data class ProfileResponse(
+    val id: Int,
+    val userName: String?,
+    val picture: String?,
+    val email: String?
+)
+
+data class UpdateProfileRequest(
+    val userName: String?,   // 传 null 表示不改
+    val picture: String?
+)
+
+data class ChangePasswordRequest(
+    val newPassword: String
+)

@@ -18,6 +18,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.mynotebook.me.AccountScreen
+import com.example.mynotebook.me.MeRoute
 import com.example.mynotebook.plan.AddPlanScreen
 import com.example.mynotebook.plan.TodayPlansRoute
 import com.example.mynotebook.share.ShareCreateScreen
@@ -180,7 +182,26 @@ fun HomeRoot(userId: Int) {
                     }
                 )
             }
-            composable(HomeTab.Me.route)    { ProfileStub() }
+            composable(HomeTab.Me.route)    { MeRoute(
+                userId = userId,
+                onOpenMyShare = { innerNav.navigate("myShare") },
+                onOpenAccount = { innerNav.navigate("account") }
+            )}
+            composable("account") {
+                AccountScreen(
+                    userId = userId,
+                    onBack = { innerNav.popBackStack() }
+                )
+            }
+
+// 你可以先占位一个我的分享页（后续可换成真实筛选）：
+            composable("myShare") {
+                // 这里暂时跳到 Share 列表并在 ShareRoute 里按 userId 过滤；
+                // 若目前 listShares 还不支持 userId，你先放一个占位页：
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("My share (coming soon)")
+                }
+            }
         }
     }
 }

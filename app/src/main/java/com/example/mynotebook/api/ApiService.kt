@@ -75,5 +75,20 @@ interface ApiService {
         @Body body: CommentCreateRequest
     ): Response<Unit>
 
+    @GET("/api/user/{id}/profile")
+    suspend fun getProfile(@Path("id") id: Int): Response<ProfileResponse>
+
+    @PUT("/api/user/{id}/profile")
+    suspend fun updateProfile(
+        @Path("id") id: Int,
+        @Body req: UpdateProfileRequest
+    ): Response<Unit>
+
+    @PUT("/api/user/{id}/password")
+    suspend fun changePassword(
+        @Path("id") id: Int,
+        @Body req: ChangePasswordRequest
+    ): Response<Unit>
+
 }
 
